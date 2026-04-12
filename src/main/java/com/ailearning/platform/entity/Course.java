@@ -25,6 +25,20 @@ public class Course {
     @Column(nullable = false)
     private String title;
 
+    @Column(nullable = false, unique = true)
+    private String slug;
+
+    @PrePersist
+    private void generateSlug() {
+        if (this.slug == null && this.title != null) {
+            this.slug = this.title.toLowerCase()
+                    .replaceAll("[^a-z0-9\\s-]", "")
+                    .replaceAll("\\s+", "-")
+                    .replaceAll("-+", "-")
+                    .replaceAll("^-|-$", "");
+        }
+    }
+
     @Column(columnDefinition = "TEXT")
     private String description;
 
