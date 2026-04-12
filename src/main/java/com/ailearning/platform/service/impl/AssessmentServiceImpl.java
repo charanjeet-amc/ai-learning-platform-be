@@ -1,0 +1,173 @@
+package com.ailearning.platform.service.impl;
+
+import com.ailearning.platform.dto.request.SubmitAnswerRequest;
+import com.ailearning.platform.dto.response.AnswerResultResponse;
+import com.ailearning.platform.dto.response.QuestionResponse;
+import com.ailearning.platform.entity.*;
+import com.ailearning.platform.entity.enums.ConceptStatus;
+import com.ailearning.platform.exception.ResourceNotFoundException;
+import com.ailearning.platform.repository.*;
+import com.ailearning.platform.ai.MasteryCalculator;
+import com.ailearning.platform.ai.AdaptiveEngine;
+import com.ailearning.platform.service.AssessmentService;
+import com.ailearning.platform.service.GamificationService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class AssessmentServiceImpl implements AssessmentService {
+
+    private final QuestionRepository questionRepository;
+    private final UserAttemptRepository userAttemptRepository;
+    private final UserConceptProgressRepository progressRepository;
+    private final UserRepository userRepository;
+    private final ConceptRepository conceptRepository;
+    private final MasteryCalculator masteryCalculator;
+    private final AdaptiveEngine adaptiveEngine;
+    private final GamificationService gamificationService;
+
+    @Override
+    public List<QuestionResponse> getQuestionsForConcept(UUID conceptId, UUID userId) {
+        UserConceptProgress progress = progressRepository
+                .findByUserIdAndConceptId(userId, conceptId).orElse(null);
+
+        List<Question> questions = questionRepository.findByConceptId(conceptId);
+
+        // Filter by difficulty based on user progress
+        if (progress != null && progress.getMasteryLevel() > 0.6) {
+            questions = questions.stream()
+                    .filter(q -> q.getDifficulty().ordinal() >= progress.getMasteryLevel() * 4)
+                    .collect(Collectors.toList());
+        }
+
+        return questions.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public AnswerResultResponse submitAnswer(SubmitAnswerRequest request, UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+        Question question = questionRepository.findById(request.getQuestionId())
+                .orElseThrow(() -> new ResourceNotFoundException("Question", "id", request.getQuestionId()));
+
+        // Validate the answer
+        boolean correct = validateAnswer(question, request.getAnswer());
+        double score = correct ? 1.0 : 0.0;
+
+        // Record the attempt
+        UserAttempt attempt = UserAttempt.builder()
+                .user(user)
+                .question(question)
+                .answer(request.getAnswer())
+                .score(score)
+                .correct(correct)
+                .timeTakenSeconds(request.getTimeTakenSeconds())
+                .hintsUsed(request.getHintsUsed() != null ? request.getHintsUsed() : 0)
+                .build();
+        attempt = userAttemptRepository.save(attempt);
+
+        // Update concept progress
+        UUID conceptId = question.getConcept().getId();
+        UserConceptProgress progress = progressRepository
+                .findByUserIdAndConceptId(userId, conceptId)
+                .orElseGet(() -> UserConceptProgress.builder()
+                        .user(user)
+                        .concept(question.getConcept())
+                        .status(ConceptStatus.IN_PROGRESS)
+                        .build());
+
+        progress.setAttempts(progress.getAttempts() + 1);
+        if (correct) {
+            progress.setCorrectAttempts(progress.getCorrectAttempts() + 1);
+        }
+        progress.setHintsUsed(progress.getHintsUsed() + (request.getHintsUsed() != null ? request.getHintsUsed() : 0));
+        progress.setLastAccessedAt(LocalDateTime.now());
+        progress.setStatus(ConceptStatus.IN_PROGRESS);
+
+        // Recalculate mastery
+        double mastery = masteryCalculator.calculate(progress);
+        progress.setMasteryLevel(mastery);
+
+        // Check mastery threshold
+        if (mastery >= 0.85) {
+            progress.setStatus(ConceptStatus.MASTERED);
+            gamificationService.awardXP(userId, "CONCEPT_MASTERED", 50, conceptId);
+        }
+
+        progressRepository.save(progress);
+
+        // Determine next action
+        String nextAction = adaptiveEngine.determineNextAction(mastery);
+
+        // Award XP for correct answer
+        if (correct) {
+            gamificationService.awardXP(userId, "CORRECT_ANSWER", 10, question.getId());
+        }
+
+        return AnswerResultResponse.builder()
+                .attemptId(attempt.getId())
+                .correct(correct)
+                .score(score)
+                .explanation(question.getExplanation())
+                .feedback(correct ? "Excellent work!" : "Not quite right. Let's review this concept.")
+                .updatedMastery(mastery)
+                .nextAction(nextAction)
+                .build();
+    }
+
+    @Override
+    public List<QuestionResponse> generateDiagnosticTest(UUID moduleId, UUID userId) {
+        // Get all concepts in the module and pick a representative question from each
+        return conceptRepository.findAll().stream()
+                .filter(c -> c.getTopic().getModule().getId().equals(moduleId))
+                .flatMap(c -> questionRepository.findByConceptId(c.getId()).stream().limit(1))
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    private boolean validateAnswer(Question question, Map<String, Object> answer) {
+        Map<String, Object> metadata = question.getMetadata();
+        if (metadata == null || !metadata.containsKey("correctAnswer")) {
+            return false;
+        }
+
+        Object correctAnswer = metadata.get("correctAnswer");
+        Object userAnswer = answer.get("answer");
+
+        if (correctAnswer == null || userAnswer == null) {
+            return false;
+        }
+
+        return correctAnswer.toString().equalsIgnoreCase(userAnswer.toString());
+    }
+
+    private QuestionResponse mapToResponse(Question question) {
+        // Remove correct answer from metadata for client
+        Map<String, Object> clientMetadata = question.getMetadata() != null ?
+                question.getMetadata().entrySet().stream()
+                        .filter(e -> !e.getKey().equals("correctAnswer"))
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
+                : null;
+
+        return QuestionResponse.builder()
+                .id(question.getId())
+                .conceptId(question.getConcept().getId())
+                .type(question.getType())
+                .questionText(question.getQuestionText())
+                .metadata(clientMetadata)
+                .difficulty(question.getDifficulty())
+                .aiGenerated(question.getAiGenerated())
+                .build();
+    }
+}
