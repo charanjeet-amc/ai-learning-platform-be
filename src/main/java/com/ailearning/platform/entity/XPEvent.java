@@ -22,12 +22,13 @@ public class XPEvent {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false)
+    @Column(name = "reason", nullable = false)
     private String eventType;
 
-    @Column(nullable = false)
+    @Column(name = "amount", nullable = false)
     private Integer xpAmount;
 
+    @Column(name = "source_id")
     private UUID referenceId;
 
     @CreationTimestamp

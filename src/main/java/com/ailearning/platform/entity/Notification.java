@@ -30,6 +30,7 @@ public class Notification {
 
     private String type;
 
+    @Column(name = "link")
     private String actionUrl;
 
     @Builder.Default

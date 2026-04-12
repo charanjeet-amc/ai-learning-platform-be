@@ -27,6 +27,7 @@ public class Enrollment {
     @JoinColumn(name = "course_id", nullable = false)
     private Course course;
 
+    @Column(name = "progress")
     @Builder.Default
     private Double progressPercent = 0.0;
 

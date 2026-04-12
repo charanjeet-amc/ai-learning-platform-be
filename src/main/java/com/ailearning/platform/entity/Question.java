@@ -28,7 +28,7 @@ public class Question {
     private Concept concept;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "question_type", nullable = false)
     private QuestionType type;
 
     @Column(columnDefinition = "TEXT", nullable = false)

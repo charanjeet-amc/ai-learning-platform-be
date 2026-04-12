@@ -30,6 +30,7 @@ public class LearningPath {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "active")
     @Builder.Default
     private Boolean isDefault = true;
 

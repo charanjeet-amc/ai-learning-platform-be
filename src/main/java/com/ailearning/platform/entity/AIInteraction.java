@@ -26,10 +26,10 @@ public class AIInteraction {
     @JoinColumn(name = "concept_id")
     private Concept concept;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @Column(name = "user_message", columnDefinition = "TEXT", nullable = false)
     private String query;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @Column(name = "ai_response", columnDefinition = "TEXT", nullable = false)
     private String response;
 
     private String sessionId;

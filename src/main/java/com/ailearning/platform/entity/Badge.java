@@ -24,6 +24,7 @@ public class Badge {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "icon")
     private String iconUrl;
 
     private String criteria;

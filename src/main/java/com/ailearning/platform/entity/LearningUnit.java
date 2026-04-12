@@ -27,7 +27,7 @@ public class LearningUnit {
     private Concept concept;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "content_type", nullable = false)
     private ContentType type;
 
     @JdbcTypeCode(SqlTypes.JSON)

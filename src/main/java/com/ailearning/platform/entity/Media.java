@@ -23,11 +23,13 @@ public class Media {
     @Column(nullable = false)
     private String url;
 
-    @Column(nullable = false)
+    @Column(name = "content_type", nullable = false)
     private String type;
 
+    @Column(name = "filename")
     private String fileName;
 
+    @Column(name = "size_bytes")
     private Long fileSizeBytes;
 
     private Integer durationSeconds;

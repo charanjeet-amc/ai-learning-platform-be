@@ -30,7 +30,7 @@ public class Concept {
     @Column(nullable = false)
     private String title;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "description", columnDefinition = "TEXT")
     private String definition;
 
     @Column(name = "order_index", nullable = false)
@@ -38,6 +38,7 @@ public class Concept {
     private Integer orderIndex = 0;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "difficulty")
     @Builder.Default
     private DifficultyLevel difficultyLevel = DifficultyLevel.BEGINNER;
 
@@ -48,7 +49,7 @@ public class Concept {
     @JoinTable(
         name = "concept_dependencies",
         joinColumns = @JoinColumn(name = "concept_id"),
-        inverseJoinColumns = @JoinColumn(name = "depends_on_concept_id")
+        inverseJoinColumns = @JoinColumn(name = "dependency_id")
     )
     @Builder.Default
     private Set<Concept> dependencies = new HashSet<>();

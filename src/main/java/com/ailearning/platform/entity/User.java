@@ -29,7 +29,7 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
+    @Column(name = "display_name", nullable = false)
     private String fullName;
 
     private String avatarUrl;
@@ -53,6 +53,7 @@ public class User {
     @Builder.Default
     private Integer longestStreak = 0;
 
+    @Column(name = "last_active_date")
     private LocalDateTime lastActiveAt;
 
     @CreationTimestamp

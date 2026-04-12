@@ -28,9 +28,11 @@ public class UserConceptProgress {
     @JoinColumn(name = "concept_id", nullable = false)
     private Concept concept;
 
+    @Column(name = "mastery_score")
     @Builder.Default
     private Double masteryLevel = 0.0;
 
+    @Column(name = "confidence")
     @Builder.Default
     private Double confidenceScore = 1.0;
 
@@ -43,6 +45,7 @@ public class UserConceptProgress {
     @Builder.Default
     private Integer hintsUsed = 0;
 
+    @Column(name = "time_spent_minutes")
     @Builder.Default
     private Long timeSpentSeconds = 0L;
 

@@ -37,6 +37,7 @@ public class Course {
     @Builder.Default
     private DifficultyLevel difficulty = DifficultyLevel.BEGINNER;
 
+    @Column(name = "estimated_hours")
     private Integer estimatedDurationMinutes;
 
     private String industryVertical;
@@ -62,7 +63,7 @@ public class Course {
     private Double price;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by")
+    @JoinColumn(name = "instructor_id")
     private User createdBy;
 
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)

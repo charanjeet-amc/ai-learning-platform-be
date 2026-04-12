@@ -34,6 +34,7 @@ public class UserLearningProfile {
     private LearningPace pace = LearningPace.MEDIUM;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "difficulty_preference")
     @Builder.Default
     private DifficultyLevel skillLevel = DifficultyLevel.BEGINNER;
 

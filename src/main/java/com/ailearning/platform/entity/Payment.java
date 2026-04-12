@@ -34,6 +34,7 @@ public class Payment {
     @Column(nullable = false)
     private String currency;
 
+    @Column(name = "stripe_payment_id")
     private String stripePaymentIntentId;
 
     private String stripeSessionId;
