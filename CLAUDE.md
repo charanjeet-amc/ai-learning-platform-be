@@ -1,7 +1,20 @@
 # AI Learning Platform — Backend
 
+## Product Vision
+Build the most advanced AI-powered learning platform that surpasses Coursera, Udemy, and DeepLearning.AI. AI-native adaptive learning — not video courses with AI bolted on.
+
+## Core Requirements
+1. **Knowledge Graph Architecture**: Courses → Modules → Topics → Concepts → LearningUnits. Concept dependencies form a DAG for optimal learning order.
+2. **AI Adaptive Learning**: Personalized paths per student. Concept mastery tracking (NOT completion-based). Adaptive difficulty. Spaced repetition. Statuses: NOT_STARTED → IN_PROGRESS → STRUGGLING / MASTERED / REVIEW_NEEDED.
+3. **AI Tutor (GPT-4o)**: Real-time conversational tutor via WebSocket. Context-aware, Socratic method, detects misconceptions.
+4. **Adaptive Assessments**: MCQ, code exercises, short answer, etc. AI generates questions dynamically. Difficulty adjusts mid-assessment.
+5. **Gamification**: XP points, daily streaks with multipliers, badges, leaderboard, levels.
+6. **Roles & Auth**: Student, Instructor, Admin, Content Creator. Keycloak OAuth2/JWT. Subscription tiers: FREE, BASIC, PRO, ENTERPRISE.
+7. **Payments**: Stripe integration for course purchases and subscriptions.
+8. **Real-time**: WebSocket/STOMP for AI tutor chat, notifications.
+
 ## Project Overview
-AI-native adaptive learning platform backend. Spring Boot REST API with AI tutoring, adaptive assessments, gamification, and real-time WebSocket support.
+Spring Boot REST API implementing all of the above.
 
 ## Tech Stack
 - **Java 21**, **Spring Boot 3.4.4**, **Maven**
@@ -109,3 +122,19 @@ User → AIInteraction, UserAttempt, Payment, Notification
 - `@Transactional(readOnly = true)` on service class, `@Transactional` on write methods
 - `@Cacheable` / `@CacheEvict` for Redis caching on course reads/writes
 - `findByPublishedTrue()` — courses must have `published=true` to appear in listings
+
+## Current Status (April 2026)
+- **LIVE** on Railway — health endpoint working
+- **0 courses in database** — seed endpoint (`POST /api/public/seed`) returns 500, needs debugging
+- **No Keycloak deployed** — JWT auth endpoints unusable, only public endpoints work
+- **Known issue**: `prerequisites` column is TEXT in DB but `String[]` in entity — Hibernate ALTER fails silently
+
+## Features Not Yet Implemented
+- Keycloak deployment (auth wired but no server)
+- AI tutor OpenAI integration (controller/service exist, untested with live API)
+- Adaptive assessment AI logic
+- Spaced repetition scheduler
+- Stripe payment flow
+- Instructor course creation flow
+- Admin dashboard
+- WebSocket notifications
