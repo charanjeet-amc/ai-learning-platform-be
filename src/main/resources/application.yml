@@ -48,7 +48,6 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/ai-learning}
           jwk-set-uri: ${KEYCLOAK_JWK_URI:http://localhost:8180/realms/ai-learning/protocol/openid-connect/certs}
 
   # Jackson
