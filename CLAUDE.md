@@ -19,9 +19,9 @@ Spring Boot REST API implementing all of the above.
 ## Tech Stack
 - **Java 21**, **Spring Boot 3.4.4**, **Maven**
 - **PostgreSQL 16** (Flyway migrations), **Redis 7** (caching)
-- **Keycloak 26** OAuth2/JWT auth (resource server)
-- **OpenAI Java SDK 4.31.0** (GPT-4o)
-- **Stripe** payments, **WebSocket/STOMP** real-time
+- **Self-issued HMAC-SHA256 JWT** auth (replaced Keycloak — no Keycloak server needed)
+- **OpenAI Java SDK 4.31.0** (GPT-4o) — AI Tutor with Socratic method
+- **Stripe** payments (wired, not yet active), **WebSocket/STOMP** real-time (config exists)
 - **Lombok**, **MapStruct**, **Hibernate**
 
 ## Build & Run
@@ -85,10 +85,28 @@ User → AIInteraction, UserAttempt, Payment, Notification
 - Course entity has `@PrePersist` auto-generating `slug` from `title`
 
 ## Security
+- **Auth**: Self-issued HMAC-SHA256 JWT (Nimbus JOSE library from spring-boot-starter-oauth2-resource-server)
+- **JwtTokenProvider** (`config/JwtTokenProvider.java`): generates tokens with userId (subject), username, email, displayName, roles claims
+- **SecurityConfig** (`config/SecurityConfig.java`): NimbusJwtDecoder with SecretKeySpec, BCryptPasswordEncoder
+- **AuthController** (`controller/AuthController.java`):
+  - `POST /api/public/auth/register` — creates user, returns JWT + user info
+  - `POST /api/public/auth/login` — accepts username OR email, validates BCrypt password, returns JWT
+  - Duplicate email/username returns 409 Conflict
 - **Public endpoints**: `/api/public/**`, `GET /api/courses/**`, `/actuator/health`, `/ws/**`
-- **Authenticated**: all other endpoints require JWT Bearer token
+- **Authenticated**: all other endpoints require `Authorization: Bearer <jwt>` header
 - **Admin**: `/api/admin/**` requires `ROLE_ADMIN`
+- JWT subject = user UUID (used by `@AuthenticationPrincipal Jwt jwt` → `jwt.getSubject()`)
 - `/api/public/seed` — POST endpoint to seed demo data (idempotent)
+- **Test users in DB**: testuser1/testpass123, testuser2/testpass123
+
+### Auth DTOs
+- `RegisterRequest`: username (3-50 chars), email, password (6-100 chars), displayName
+- `LoginRequest`: username, password
+- `AuthResponse`: token, userId, username, email, displayName, avatarUrl, roles
+
+### User Entity Auth Fields
+- `passwordHash` (String, nullable — seed users don't have passwords)
+- `keycloakId` (String, nullable, unique — set to "local-"+UUID for locally registered users)
 
 ## Enums (Java ↔ PostgreSQL)
 - `DifficultyLevel`: BEGINNER, EASY, MEDIUM, HARD, ADVANCED
@@ -107,11 +125,12 @@ User → AIInteraction, UserAttempt, Payment, Notification
 | `DB_PASSWORD` | postgres | DB password |
 | `REDIS_HOST` | localhost | Redis host |
 | `REDIS_PORT` | 6379 | Redis port |
-| `OPENAI_API_KEY` | — | OpenAI API key |
+| `OPENAI_API_KEY` | — | OpenAI API key (set on Railway) |
 | `OPENAI_MODEL` | gpt-4o | Model name |
 | `STRIPE_API_KEY` | — | Stripe secret key |
 | `CORS_ORIGINS` | http://localhost:5173 | Allowed CORS origins (comma-separated) |
-| `KEYCLOAK_JWK_URI` | http://localhost:8180/realms/ai-learning/... | JWT verification endpoint |
+| `JWT_SECRET` | aiLearningPlatform...Signing | HMAC-SHA256 signing key |
+| `JWT_EXPIRATION_HOURS` | 24 | JWT token validity |
 
 ## Conventions
 - Entities use `@Builder`, `@Getter`, `@Setter`, `@NoArgsConstructor`, `@AllArgsConstructor` (Lombok)
@@ -123,18 +142,34 @@ User → AIInteraction, UserAttempt, Payment, Notification
 - `@Cacheable` / `@CacheEvict` for Redis caching on course reads/writes
 - `findByPublishedTrue()` — courses must have `published=true` to appear in listings
 
-## Current Status (April 2026)
-- **LIVE** on Railway — health endpoint working
-- **0 courses in database** — seed endpoint (`POST /api/public/seed`) returns 500, needs debugging
-- **No Keycloak deployed** — JWT auth endpoints unusable, only public endpoints work
-- **Known issue**: `prerequisites` column is TEXT in DB but `String[]` in entity — Hibernate ALTER fails silently
+## Current Status (April 13, 2026)
+- **LIVE** on Railway — all endpoints working
+- **5 courses seeded** with full knowledge graph (modules → topics → concepts → learning units)
+- **Auth working**: Self-issued JWT auth — register, login, logout
+- **AI Tutor working**: GPT-4o Socratic method, context-aware, hint escalation (levels 1-4)
+- **Enrollment working**: Enroll, unenroll, enrollment status check
+- **Gamification**: XP awarded for enrollment (10 XP) and AI tutor interactions (2 XP)
+
+## Important Field Mappings (Backend DTO ↔ Frontend)
+- `LearningUnitResponse.contentType` (entity field is `type` — mapped in `CourseServiceImpl`)
+- `AITutorRequest.query` (frontend was sending `message` — fixed)
+- `AITutorResponse.message` (frontend was reading `response` — fixed)
+- `AITutorResponse.sessionId` — auto-generated UUID if client doesn't send one
+- Seed data stores content as `{"body": "..."}` in JSONB
+
+## Bugs Fixed (April 13, 2026)
+1. `prerequisites` TEXT mismatch — entity/DTOs changed to `String`
+2. GlobalExceptionHandler was swallowing errors — now logs and returns actual messages
+3. `Enrollment.enrolledAt` null on UPDATE — added `@Column(updatable=false)` + explicit `LocalDateTime.now()`
+4. `learningUnits` missing from tree API — `mapConceptResponse()` wasn't mapping them; added `mapLearningUnitResponse()`
+5. AI Tutor `sessionId` null on save — DB has NOT NULL constraint; now auto-generates UUID
+6. AI Tutor field mismatches with frontend — aligned request/response field names
 
 ## Features Not Yet Implemented
-- Keycloak deployment (auth wired but no server)
-- AI tutor OpenAI integration (controller/service exist, untested with live API)
-- Adaptive assessment AI logic
+- Adaptive assessment AI logic (structure exists)
 - Spaced repetition scheduler
 - Stripe payment flow
 - Instructor course creation flow
 - Admin dashboard
-- WebSocket notifications
+- WebSocket real-time notifications (config exists, not used yet)
+- Richer course content beyond seed data
