@@ -39,5 +39,6 @@ public class Enrollment {
     private LocalDateTime completedAt;
 
     @CreationTimestamp
+    @Column(updatable = false)
     private LocalDateTime enrolledAt;
 }
