@@ -59,8 +59,8 @@ public class Course {
     @Column(columnDefinition = "TEXT[]")
     private String[] skillsOutcome;
 
-    @Column(columnDefinition = "TEXT[]")
-    private String[] prerequisites;
+    @Column(columnDefinition = "TEXT")
+    private String prerequisites;
 
     @Column(columnDefinition = "TEXT[]")
     private String[] tags;

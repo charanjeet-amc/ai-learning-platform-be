@@ -20,7 +20,7 @@ public class CourseResponse {
     private Integer estimatedDurationMinutes;
     private String industryVertical;
     private String[] skillsOutcome;
-    private String[] prerequisites;
+    private String prerequisites;
     private String[] tags;
     private Boolean published;
     private Double rating;

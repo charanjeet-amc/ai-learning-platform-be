@@ -15,7 +15,7 @@ public class CreateCourseRequest {
     private Integer estimatedDurationMinutes;
     private String industryVertical;
     private String[] skillsOutcome;
-    private String[] prerequisites;
+    private String prerequisites;
     private String[] tags;
     private Double price;
 }
