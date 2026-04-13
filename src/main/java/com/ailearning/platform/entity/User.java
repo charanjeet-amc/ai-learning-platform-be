@@ -23,7 +23,7 @@ public class User {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private String keycloakId;
 
     @Column(nullable = false, unique = true)
@@ -34,6 +34,8 @@ public class User {
 
     @Column(name = "display_name", nullable = false)
     private String fullName;
+
+    private String passwordHash;
 
     private String avatarUrl;
 
