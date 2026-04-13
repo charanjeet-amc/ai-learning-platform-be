@@ -11,7 +11,7 @@ import java.util.UUID;
 @Builder
 public class LearningUnitResponse {
     private UUID id;
-    private ContentType type;
+    private ContentType contentType;
     private String title;
     private Map<String, Object> content;
     private Integer orderIndex;

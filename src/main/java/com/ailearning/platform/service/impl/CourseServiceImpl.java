@@ -217,6 +217,9 @@ public class CourseServiceImpl implements CourseService {
                 .difficultyLevel(concept.getDifficultyLevel())
                 .orderIndex(concept.getOrderIndex())
                 .tags(concept.getTags())
+                .learningUnits(concept.getLearningUnits().stream()
+                        .map(this::mapLearningUnitResponse)
+                        .collect(Collectors.toList()))
                 .misconceptions(concept.getMisconceptions().stream()
                         .map(ConceptMisconception::getMisconception)
                         .collect(Collectors.toList()))
@@ -229,6 +232,17 @@ public class CourseServiceImpl implements CourseService {
                 .dependencyIds(concept.getDependencies().stream()
                         .map(Concept::getId)
                         .collect(Collectors.toList()))
+                .build();
+    }
+
+    private LearningUnitResponse mapLearningUnitResponse(LearningUnit unit) {
+        return LearningUnitResponse.builder()
+                .id(unit.getId())
+                .contentType(unit.getType())
+                .title(unit.getTitle())
+                .content(unit.getContent())
+                .orderIndex(unit.getOrderIndex())
+                .estimatedTimeMinutes(unit.getEstimatedTimeMinutes())
                 .build();
     }
 }
