@@ -88,12 +88,13 @@ public class AITutorServiceImpl implements AITutorService {
         }
 
         // 6. Save interaction
+        String sessionId = request.getSessionId() != null ? request.getSessionId() : UUID.randomUUID().toString();
         AIInteraction interaction = AIInteraction.builder()
                 .user(user)
                 .concept(context.getConcept())
                 .query(request.getQuery())
                 .response(aiResponse)
-                .sessionId(request.getSessionId())
+                .sessionId(sessionId)
                 .build();
         interactionRepository.save(interaction);
 
@@ -102,6 +103,7 @@ public class AITutorServiceImpl implements AITutorService {
 
         return AITutorResponse.builder()
                 .message(aiResponse)
+                .sessionId(sessionId)
                 .responseType(responseType)
                 .hintLevel(hintLevel)
                 .suggestedAction(nextAction)

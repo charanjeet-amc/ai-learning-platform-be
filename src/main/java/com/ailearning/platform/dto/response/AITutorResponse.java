@@ -7,6 +7,7 @@ import lombok.Data;
 @Builder
 public class AITutorResponse {
     private String message;
+    private String sessionId;
     private String responseType; // explanation, hint, question, step_by_step, answer
     private Integer hintLevel; // 1-4
     private String suggestedAction; // next_concept, reinforce, remediate

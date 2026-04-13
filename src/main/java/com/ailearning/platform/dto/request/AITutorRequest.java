@@ -8,10 +8,10 @@ import java.util.UUID;
 
 @Data
 public class AITutorRequest {
-    @NotNull
     private UUID courseId;
     private UUID moduleId;
     private UUID topicId;
+    @NotNull
     private UUID conceptId;
     @NotBlank
     private String query;
