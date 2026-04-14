@@ -11,7 +11,10 @@ RUN mvn clean package -DskipTests -q
 FROM eclipse-temurin:21-jre-alpine AS runtime
 
 WORKDIR /app
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 COPY --from=build /app/target/*.jar app.jar
+RUN chown appuser:appgroup app.jar
+USER appuser
 
 EXPOSE 8080
 
