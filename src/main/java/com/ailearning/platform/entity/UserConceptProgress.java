@@ -58,6 +58,14 @@ public class UserConceptProgress {
 
     private LocalDateTime lastAccessedAt;
 
+    private LocalDateTime nextReviewAt;
+
+    @Builder.Default
+    private Integer reviewIntervalDays = 1;
+
+    @Builder.Default
+    private Double easeFactor = 2.5;
+
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 }

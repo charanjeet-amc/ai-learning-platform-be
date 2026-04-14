@@ -4,6 +4,7 @@ import com.ailearning.platform.entity.enums.ConceptStatus;
 import lombok.Builder;
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -17,4 +18,5 @@ public class UserProgressResponse {
     private Integer attempts;
     private ConceptStatus status;
     private Boolean fastTracked;
+    private LocalDateTime nextReviewAt;
 }

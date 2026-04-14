@@ -3,6 +3,7 @@ package com.ailearning.platform.controller;
 import com.ailearning.platform.dto.request.SubmitAnswerRequest;
 import com.ailearning.platform.dto.response.AnswerResultResponse;
 import com.ailearning.platform.dto.response.QuestionResponse;
+import com.ailearning.platform.dto.response.UserProgressResponse;
 import com.ailearning.platform.service.AssessmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -43,5 +44,20 @@ public class AssessmentController {
             @AuthenticationPrincipal Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
         return ResponseEntity.ok(assessmentService.generateDiagnosticTest(moduleId, userId));
+    }
+
+    @GetMapping("/review-queue")
+    public ResponseEntity<List<UserProgressResponse>> getReviewQueue(
+            @AuthenticationPrincipal Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        return ResponseEntity.ok(assessmentService.getReviewQueue(userId));
+    }
+
+    @PostMapping("/concepts/{conceptId}/generate")
+    public ResponseEntity<List<QuestionResponse>> generateAIQuestions(
+            @PathVariable UUID conceptId,
+            @AuthenticationPrincipal Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        return ResponseEntity.ok(assessmentService.generateAIQuestions(conceptId, userId));
     }
 }

@@ -14,5 +14,8 @@ public class AnswerResultResponse {
     private String explanation;
     private String feedback;
     private Double updatedMastery;
-    private String nextAction; // next_question, reinforce, remediate, advance
+    private String nextAction;
+    @Builder.Default
+    private Integer xpEarned = 0;
+    private UUID nextConceptId;
 }

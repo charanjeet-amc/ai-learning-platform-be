@@ -9,9 +9,13 @@ import com.ailearning.platform.exception.ResourceNotFoundException;
 import com.ailearning.platform.repository.*;
 import com.ailearning.platform.ai.MasteryCalculator;
 import com.ailearning.platform.ai.AdaptiveEngine;
+import com.ailearning.platform.ai.SpacedRepetitionEngine;
+import com.ailearning.platform.ai.QuestionGeneratorEngine;
 import com.ailearning.platform.service.AssessmentService;
 import com.ailearning.platform.service.GamificationService;
+import com.ailearning.platform.dto.response.UserProgressResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +27,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AssessmentServiceImpl implements AssessmentService {
 
     private final QuestionRepository questionRepository;
@@ -32,6 +37,8 @@ public class AssessmentServiceImpl implements AssessmentService {
     private final ConceptRepository conceptRepository;
     private final MasteryCalculator masteryCalculator;
     private final AdaptiveEngine adaptiveEngine;
+    private final SpacedRepetitionEngine spacedRepetitionEngine;
+    private final QuestionGeneratorEngine questionGeneratorEngine;
     private final GamificationService gamificationService;
 
     @Override
@@ -105,14 +112,28 @@ public class AssessmentServiceImpl implements AssessmentService {
             gamificationService.awardXP(userId, "CONCEPT_MASTERED", 50, conceptId);
         }
 
+        // Schedule spaced repetition review
+        spacedRepetitionEngine.scheduleReview(progress, mastery);
+
         progressRepository.save(progress);
 
         // Determine next action
         String nextAction = adaptiveEngine.determineNextAction(mastery);
 
         // Award XP for correct answer
+        int xpEarned = 0;
         if (correct) {
             gamificationService.awardXP(userId, "CORRECT_ANSWER", 10, question.getId());
+            xpEarned = 10;
+        }
+        if (mastery >= 0.85 && (progress.getStatus() == ConceptStatus.MASTERED)) {
+            xpEarned += 50; // concept mastery bonus already awarded above
+        }
+
+        // Determine next concept if advancing
+        UUID nextConceptId = null;
+        if ("advance".equals(nextAction)) {
+            nextConceptId = adaptiveEngine.determineNextConcept(userId, conceptId);
         }
 
         return AnswerResultResponse.builder()
@@ -123,6 +144,8 @@ public class AssessmentServiceImpl implements AssessmentService {
                 .feedback(correct ? "Excellent work!" : "Not quite right. Let's review this concept.")
                 .updatedMastery(mastery)
                 .nextAction(nextAction)
+                .xpEarned(xpEarned)
+                .nextConceptId(nextConceptId)
                 .build();
     }
 
@@ -169,5 +192,45 @@ public class AssessmentServiceImpl implements AssessmentService {
                 .difficulty(question.getDifficulty())
                 .aiGenerated(question.getAiGenerated())
                 .build();
+    }
+
+    @Override
+    public List<UserProgressResponse> getReviewQueue(UUID userId) {
+        List<UserConceptProgress> dueForReview = progressRepository
+                .findDueForReview(userId, LocalDateTime.now());
+
+        return dueForReview.stream()
+                .map(p -> UserProgressResponse.builder()
+                        .userId(userId)
+                        .conceptId(p.getConcept().getId())
+                        .conceptTitle(p.getConcept().getTitle())
+                        .masteryLevel(p.getMasteryLevel())
+                        .confidenceScore(p.getConfidenceScore())
+                        .attempts(p.getAttempts())
+                        .status(p.getStatus())
+                        .fastTracked(p.getFastTracked())
+                        .nextReviewAt(p.getNextReviewAt())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public List<QuestionResponse> generateAIQuestions(UUID conceptId, UUID userId) {
+        Concept concept = conceptRepository.findById(conceptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Concept", "id", conceptId));
+
+        UserConceptProgress progress = progressRepository
+                .findByUserIdAndConceptId(userId, conceptId).orElse(null);
+
+        List<Question> generated = questionGeneratorEngine.generateQuestions(concept, progress, 3);
+
+        // Save generated questions to DB
+        List<Question> saved = questionRepository.saveAll(generated);
+        log.info("Generated and saved {} AI questions for concept {}", saved.size(), conceptId);
+
+        return saved.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 }
