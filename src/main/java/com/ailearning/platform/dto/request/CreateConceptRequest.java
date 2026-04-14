@@ -15,6 +15,7 @@ public class CreateConceptRequest {
     @NotBlank
     private String title;
     private String definition;
+    private String content;  // Markdown body for the learning unit
     private DifficultyLevel difficultyLevel;
     private Integer orderIndex;
     private String[] tags;

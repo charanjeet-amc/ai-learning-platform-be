@@ -6,18 +6,20 @@ import com.ailearning.platform.dto.request.RegisterRequest;
 import com.ailearning.platform.dto.response.AuthResponse;
 import com.ailearning.platform.entity.User;
 import com.ailearning.platform.repository.UserRepository;
+import com.ailearning.platform.entity.enums.UserRole;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/public/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -25,7 +27,7 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
 
-    @PostMapping("/register")
+    @PostMapping("/api/public/auth/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -53,7 +55,7 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(buildAuthResponse(user, token, roles));
     }
 
-    @PostMapping("/login")
+    @PostMapping("/api/public/auth/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         User user = userRepository.findByUsername(request.getUsername())
                 .or(() -> userRepository.findByEmail(request.getUsername()))
@@ -68,6 +70,21 @@ public class AuthController {
         String token = jwtTokenProvider.generateToken(
                 user.getId(), user.getUsername(), user.getEmail(), user.getFullName(), roles);
 
+        return ResponseEntity.ok(buildAuthResponse(user, token, roles));
+    }
+
+    @PostMapping("/api/auth/become-instructor")
+    public ResponseEntity<AuthResponse> becomeInstructor(@AuthenticationPrincipal Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) return ResponseEntity.notFound().build();
+
+        user.setRole(UserRole.INSTRUCTOR);
+        userRepository.save(user);
+
+        List<String> roles = List.of(user.getRole().name());
+        String token = jwtTokenProvider.generateToken(
+                user.getId(), user.getUsername(), user.getEmail(), user.getFullName(), roles);
         return ResponseEntity.ok(buildAuthResponse(user, token, roles));
     }
 
