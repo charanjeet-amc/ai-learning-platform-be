@@ -9,6 +9,7 @@ import com.ailearning.platform.entity.enums.UserRole;
 import com.ailearning.platform.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,6 +27,7 @@ public class SeedController {
     private final ConceptRepository conceptRepository;
     private final LearningUnitRepository learningUnitRepository;
     private final QuestionRepository questionRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @PostMapping("/seed-questions")
     @Transactional
@@ -164,6 +166,13 @@ public class SeedController {
     @Transactional
     public ResponseEntity<Map<String, Object>> seedData() {
         if (courseRepository.count() > 0) {
+            // Fix existing instructor password if missing
+            userRepository.findByEmail("dr.sarah.chen@ailearning.com").ifPresent(u -> {
+                if (u.getPasswordHash() == null || u.getPasswordHash().isBlank()) {
+                    u.setPasswordHash(passwordEncoder.encode("instructor123"));
+                    userRepository.save(u);
+                }
+            });
             return ResponseEntity.ok(Map.of("message", "Data already seeded", "courses", courseRepository.count()));
         }
 
@@ -173,6 +182,7 @@ public class SeedController {
                 .email("dr.sarah.chen@ailearning.com")
                 .username("dr.sarah.chen")
                 .fullName("Dr. Sarah Chen")
+                .passwordHash(passwordEncoder.encode("instructor123"))
                 .role(UserRole.INSTRUCTOR)
                 .totalXp(50000L)
                 .build();
