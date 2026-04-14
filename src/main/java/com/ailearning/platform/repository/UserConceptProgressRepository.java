@@ -29,6 +29,15 @@ public interface UserConceptProgressRepository extends JpaRepository<UserConcept
            "AND ucp.status = 'MASTERED'")
     long countMasteredByUserAndCourse(@Param("userId") UUID userId, @Param("courseId") UUID courseId);
 
+    @Query("SELECT COUNT(ucp) FROM UserConceptProgress ucp " +
+           "WHERE ucp.user.id = :userId AND ucp.concept.topic.module.course.id = :courseId " +
+           "AND ucp.status = 'IN_PROGRESS'")
+    long countInProgressByUserAndCourse(@Param("userId") UUID userId, @Param("courseId") UUID courseId);
+
+    @Query("SELECT COUNT(ucp) FROM UserConceptProgress ucp " +
+           "WHERE ucp.user.id = :userId AND ucp.status = 'MASTERED'")
+    long countMasteredByUser(@Param("userId") UUID userId);
+
     @Query("SELECT ucp FROM UserConceptProgress ucp " +
            "WHERE ucp.user.id = :userId AND ucp.masteryLevel < :threshold " +
            "ORDER BY ucp.masteryLevel ASC")

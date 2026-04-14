@@ -12,6 +12,7 @@ import com.ailearning.platform.ai.AdaptiveEngine;
 import com.ailearning.platform.ai.SpacedRepetitionEngine;
 import com.ailearning.platform.ai.QuestionGeneratorEngine;
 import com.ailearning.platform.service.AssessmentService;
+import com.ailearning.platform.service.EnrollmentService;
 import com.ailearning.platform.service.GamificationService;
 import com.ailearning.platform.dto.response.UserProgressResponse;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     private final SpacedRepetitionEngine spacedRepetitionEngine;
     private final QuestionGeneratorEngine questionGeneratorEngine;
     private final GamificationService gamificationService;
+    private final EnrollmentService enrollmentService;
 
     @Override
     public List<QuestionResponse> getQuestionsForConcept(UUID conceptId, UUID userId) {
@@ -106,10 +108,14 @@ public class AssessmentServiceImpl implements AssessmentService {
         double mastery = masteryCalculator.calculate(progress);
         progress.setMasteryLevel(mastery);
 
-        // Check mastery threshold
-        if (mastery >= 0.85) {
+        // Check mastery threshold — only award XP on first mastery
+        boolean justMastered = false;
+        if (mastery >= 0.85 && progress.getStatus() != ConceptStatus.MASTERED) {
             progress.setStatus(ConceptStatus.MASTERED);
             gamificationService.awardXP(userId, "CONCEPT_MASTERED", 50, conceptId);
+            justMastered = true;
+        } else if (mastery >= 0.85) {
+            progress.setStatus(ConceptStatus.MASTERED);
         }
 
         // Schedule spaced repetition review
@@ -117,17 +123,32 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         progressRepository.save(progress);
 
+        // Update course enrollment progress
+        try {
+            UUID courseId = question.getConcept().getTopic().getModule().getCourse().getId();
+            enrollmentService.updateProgress(userId, courseId);
+        } catch (Exception e) {
+            log.warn("Could not update enrollment progress: {}", e.getMessage());
+        }
+
         // Determine next action
         String nextAction = adaptiveEngine.determineNextAction(mastery);
 
-        // Award XP for correct answer
+        // Award XP for correct answer — only if this question hasn't been answered correctly before
         int xpEarned = 0;
         if (correct) {
-            gamificationService.awardXP(userId, "CORRECT_ANSWER", 10, question.getId());
-            xpEarned = 10;
+            List<UserAttempt> previousAttempts = userAttemptRepository
+                    .findByUserIdAndQuestionIdOrderByCreatedAtDesc(userId, question.getId());
+            boolean previouslyCorrect = previousAttempts.stream()
+                    .skip(1) // skip current attempt
+                    .anyMatch(UserAttempt::getCorrect);
+            if (!previouslyCorrect) {
+                gamificationService.awardXP(userId, "CORRECT_ANSWER", 10, question.getId());
+                xpEarned = 10;
+            }
         }
-        if (mastery >= 0.85 && (progress.getStatus() == ConceptStatus.MASTERED)) {
-            xpEarned += 50; // concept mastery bonus already awarded above
+        if (justMastered) {
+            xpEarned += 50;
         }
 
         // Determine next concept if advancing
