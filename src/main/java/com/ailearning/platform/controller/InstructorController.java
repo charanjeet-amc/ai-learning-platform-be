@@ -50,6 +50,7 @@ public class InstructorController {
     // ─── My Courses ────────────────────────────────────────────
 
     @GetMapping("/courses")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<CourseResponse>> getMyCourses(@AuthenticationPrincipal Jwt jwt) {
         UUID userId = extractUserId(jwt);
         ensureInstructor(userId);
@@ -143,6 +144,7 @@ public class InstructorController {
 
         Course course = Course.builder()
                 .title(title)
+                .slug(generateUniqueSlug(title))
                 .description(description)
                 .difficulty(DifficultyLevel.valueOf(difficulty))
                 .createdBy(creator)
@@ -440,6 +442,14 @@ public class InstructorController {
     }
 
     private CourseResponse mapCourseResponse(Course course) {
+        String createdByName = null;
+        try {
+            if (course.getCreatedBy() != null) {
+                createdByName = course.getCreatedBy().getFullName();
+            }
+        } catch (Exception e) {
+            // Lazy loading may fail outside transaction
+        }
         return CourseResponse.builder()
                 .id(course.getId())
                 .title(course.getTitle())
@@ -456,12 +466,27 @@ public class InstructorController {
                 .rating(course.getRating())
                 .enrollmentCount(course.getEnrollmentCount())
                 .price(course.getPrice())
-                .createdByName(course.getCreatedBy() != null ? course.getCreatedBy().getFullName() : null)
+                .createdByName(createdByName)
                 .createdAt(course.getCreatedAt())
                 .build();
     }
 
     private CourseResponse mapCourseResponseWithTree(Course course) {
         return courseService.getCourseWithTree(course.getId());
+    }
+
+    private String generateUniqueSlug(String title) {
+        String base = title.toLowerCase()
+                .replaceAll("[^a-z0-9\\s-]", "")
+                .replaceAll("\\s+", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "");
+        String slug = base;
+        int counter = 1;
+        while (courseRepository.existsBySlug(slug)) {
+            slug = base + "-" + counter;
+            counter++;
+        }
+        return slug;
     }
 }

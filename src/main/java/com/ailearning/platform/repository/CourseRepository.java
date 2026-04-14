@@ -29,6 +29,8 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
 
     List<Course> findByCreatedById(UUID userId);
 
+    boolean existsBySlug(String slug);
+
     @Query("SELECT c FROM Course c WHERE c.published = true ORDER BY c.enrollmentCount DESC")
     List<Course> findPopularCourses(Pageable pageable);
 }
