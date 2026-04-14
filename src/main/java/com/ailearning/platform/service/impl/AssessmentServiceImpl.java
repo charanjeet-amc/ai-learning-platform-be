@@ -48,13 +48,17 @@ public class AssessmentServiceImpl implements AssessmentService {
         UserConceptProgress progress = progressRepository
                 .findByUserIdAndConceptId(userId, conceptId).orElse(null);
 
-        List<Question> questions = questionRepository.findByConceptId(conceptId);
+        List<Question> allQuestions = questionRepository.findByConceptId(conceptId);
 
-        // Filter by difficulty based on user progress
+        // Filter by difficulty based on user progress, but always fall back to all questions
+        List<Question> questions = allQuestions;
         if (progress != null && progress.getMasteryLevel() > 0.6) {
-            questions = questions.stream()
+            List<Question> filtered = allQuestions.stream()
                     .filter(q -> q.getDifficulty().ordinal() >= progress.getMasteryLevel() * 4)
                     .collect(Collectors.toList());
+            if (!filtered.isEmpty()) {
+                questions = filtered;
+            }
         }
 
         return questions.stream()
@@ -102,6 +106,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         }
         progress.setHintsUsed(progress.getHintsUsed() + (request.getHintsUsed() != null ? request.getHintsUsed() : 0));
         progress.setLastAccessedAt(LocalDateTime.now());
+        boolean wasMastered = progress.getStatus() == ConceptStatus.MASTERED;
         progress.setStatus(ConceptStatus.IN_PROGRESS);
 
         // Recalculate mastery
@@ -110,12 +115,12 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         // Check mastery threshold — only award XP on first mastery
         boolean justMastered = false;
-        if (mastery >= 0.85 && progress.getStatus() != ConceptStatus.MASTERED) {
+        if (mastery >= 0.85) {
             progress.setStatus(ConceptStatus.MASTERED);
-            gamificationService.awardXP(userId, "CONCEPT_MASTERED", 50, conceptId);
-            justMastered = true;
-        } else if (mastery >= 0.85) {
-            progress.setStatus(ConceptStatus.MASTERED);
+            if (!wasMastered) {
+                gamificationService.awardXP(userId, "CONCEPT_MASTERED", 50, conceptId);
+                justMastered = true;
+            }
         }
 
         // Schedule spaced repetition review
