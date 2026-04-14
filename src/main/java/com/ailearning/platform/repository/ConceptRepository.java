@@ -13,6 +13,9 @@ import java.util.UUID;
 public interface ConceptRepository extends JpaRepository<Concept, UUID> {
     List<Concept> findByTopicIdOrderByOrderIndexAsc(UUID topicId);
 
+    @Query("SELECT COUNT(c) FROM Concept c WHERE c.topic.module.course.id = :courseId")
+    long countByCourseId(@Param("courseId") UUID courseId);
+
     @Query("SELECT c FROM Concept c JOIN c.dependencies d WHERE d.id = :conceptId")
     List<Concept> findDependentsOf(@Param("conceptId") UUID conceptId);
 

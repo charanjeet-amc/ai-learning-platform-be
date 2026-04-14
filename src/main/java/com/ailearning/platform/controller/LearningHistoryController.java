@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -28,8 +29,10 @@ public class LearningHistoryController {
     private final EnrollmentRepository enrollmentRepository;
     private final UserConceptProgressRepository progressRepository;
     private final UserAttemptRepository attemptRepository;
+    private final ConceptRepository conceptRepository;
 
     @GetMapping
+    @Transactional(readOnly = true)
     public ResponseEntity<LearningHistoryResponse> getLearningHistory(
             @AuthenticationPrincipal Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
@@ -44,10 +47,7 @@ public class LearningHistoryController {
         // Build per-course history
         List<CourseHistoryEntry> courses = enrollments.stream().map(enrollment -> {
             UUID courseId = enrollment.getCourse().getId();
-            long totalConcepts = enrollment.getCourse().getModules().stream()
-                    .flatMap(m -> m.getTopics().stream())
-                    .flatMap(t -> t.getConcepts().stream())
-                    .count();
+            long totalConcepts = conceptRepository.countByCourseId(courseId);
             long mastered = progressRepository.countMasteredByUserAndCourse(userId, courseId);
             long inProgress = progressRepository.countInProgressByUserAndCourse(userId, courseId);
             long questionsAttempted = attemptRepository.countByCourseAndUser(userId, courseId);
