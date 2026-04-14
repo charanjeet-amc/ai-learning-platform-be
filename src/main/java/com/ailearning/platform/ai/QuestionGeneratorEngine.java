@@ -165,6 +165,7 @@ public class QuestionGeneratorEngine {
                         .type(QuestionType.MCQ)
                         .questionText(String.valueOf(q.get("questionText")))
                         .metadata(metadata)
+                        .correctAnswer(String.valueOf(q.getOrDefault("correctAnswer", "")))
                         .difficulty(diff)
                         .explanation(String.valueOf(q.getOrDefault("explanation", "")))
                         .aiGenerated(true)

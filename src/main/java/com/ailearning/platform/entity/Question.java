@@ -38,6 +38,9 @@ public class Question {
     @Column(columnDefinition = "jsonb")
     private Map<String, Object> metadata;
 
+    @Column(name = "correct_answer")
+    private String correctAnswer;
+
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private DifficultyLevel difficulty = DifficultyLevel.MEDIUM;

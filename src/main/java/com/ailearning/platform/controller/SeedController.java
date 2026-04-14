@@ -523,6 +523,7 @@ public class SeedController {
                 .type(QuestionType.MCQ)
                 .questionText(questionText)
                 .metadata(metadata)
+                .correctAnswer(correctAnswer)
                 .difficulty(difficulty)
                 .explanation(explanation)
                 .aiGenerated(false)

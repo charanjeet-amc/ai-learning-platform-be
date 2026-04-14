@@ -160,19 +160,22 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     private boolean validateAnswer(Question question, Map<String, Object> answer) {
-        Map<String, Object> metadata = question.getMetadata();
-        if (metadata == null || !metadata.containsKey("correctAnswer")) {
-            return false;
+        // Prefer correctAnswer field on entity, fall back to metadata
+        String correctAnswer = question.getCorrectAnswer();
+        if (correctAnswer == null || correctAnswer.isEmpty()) {
+            Map<String, Object> metadata = question.getMetadata();
+            if (metadata != null && metadata.containsKey("correctAnswer")) {
+                correctAnswer = metadata.get("correctAnswer").toString();
+            }
         }
 
-        Object correctAnswer = metadata.get("correctAnswer");
         Object userAnswer = answer.get("answer");
 
         if (correctAnswer == null || userAnswer == null) {
             return false;
         }
 
-        return correctAnswer.toString().equalsIgnoreCase(userAnswer.toString());
+        return correctAnswer.equalsIgnoreCase(userAnswer.toString());
     }
 
     private QuestionResponse mapToResponse(Question question) {
