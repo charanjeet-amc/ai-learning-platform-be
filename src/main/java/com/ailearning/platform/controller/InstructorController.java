@@ -462,9 +462,6 @@ public class InstructorController {
     }
 
     private CourseResponse mapCourseResponseWithTree(Course course) {
-        CourseResponse resp = mapCourseResponse(course);
-        // Tree building is already handled by courseService.getCourseWithTree;
-        // For simplicity, return basic response (frontend will re-fetch with tree if needed)
-        return resp;
+        return courseService.getCourseWithTree(course.getId());
     }
 }
