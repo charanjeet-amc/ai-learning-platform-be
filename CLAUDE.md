@@ -9,9 +9,10 @@ Build the most advanced AI-powered learning platform that surpasses Coursera, Ud
 3. **AI Tutor (GPT-4o)**: Real-time conversational tutor via WebSocket. Context-aware, Socratic method, detects misconceptions.
 4. **Adaptive Assessments**: MCQ, code exercises, short answer, etc. AI generates questions dynamically. Difficulty adjusts mid-assessment.
 5. **Gamification**: XP points, daily streaks with multipliers, badges, leaderboard, levels.
-6. **Roles & Auth**: Student, Instructor, Admin, Content Creator. Keycloak OAuth2/JWT. Subscription tiers: FREE, BASIC, PRO, ENTERPRISE.
-7. **Payments**: Stripe integration for course purchases and subscriptions.
-8. **Real-time**: WebSocket/STOMP for AI tutor chat, notifications.
+6. **Roles & Auth**: Student, Pending Instructor, Instructor, Admin, Enterprise Admin. Self-issued HMAC-SHA256 JWT. Subscription tiers: FREE, BASIC, PRO, ENTERPRISE.
+7. **Instructor Onboarding**: Register as PENDING_INSTRUCTOR → submit application (profile, links, experience) → admin review → approve/reject → only INSTRUCTOR can create courses.
+8. **Payments**: Stripe integration for course purchases and subscriptions.
+9. **Real-time**: WebSocket/STOMP for AI tutor chat, notifications.
 
 ## Project Overview
 Spring Boot REST API implementing all of the above.
@@ -40,16 +41,31 @@ mvn spring-boot:run        # run locally (needs Postgres + Redis)
 ```
 src/main/java/com/ailearning/platform/
 ├── ai/                    # OpenAI integration (tutor, content generation)
-├── config/                # SecurityConfig, CorsConfig, RedisConfig, WebSocketConfig
-├── controller/            # REST controllers (Course, AITutor, Assessment, Dashboard, Enrollment, Gamification, Seed)
+├── config/                # SecurityConfig (JwtAuthenticationConverter), CorsConfig, RedisConfig, WebSocketConfig, JacksonConfig
+├── controller/
+│   ├── AdminInstructorController.java   # GET/POST /api/admin/instructor-applications (list, detail, approve, reject)
+│   ├── AITutorController.java           # POST /api/ai-tutor
+│   ├── AssessmentController.java        # /api/assessments
+│   ├── AuthController.java              # /api/public/auth (register, login, register-instructor)
+│   ├── CourseController.java            # /api/courses (CRUD, @PreAuthorize on create/update/publish)
+│   ├── DashboardController.java         # /api/dashboard
+│   ├── EnrollmentController.java        # /api/enrollments
+│   ├── GamificationController.java      # /api/gamification
+│   ├── InstructorApplicationController.java  # /api/instructor-application (submit/view)
+│   ├── InstructorController.java        # /api/instructor
+│   ├── LearningHistoryController.java   # /api/learning-history
+│   ├── LearningPathController.java      # /api/learning-paths
+│   ├── OAuth2Controller.java            # /api/public/auth/oauth2
+│   ├── SeedController.java              # /api/public/seed (with category backfill)
+│   └── UserProfileController.java       # /api/users/me
 ├── dto/
 │   ├── request/           # Incoming DTOs
 │   └── response/          # Outgoing DTOs
-├── entity/                # JPA entities (24 entities)
-│   └── enums/             # DifficultyLevel, ContentType, ConceptStatus, UserRole, etc.
+├── entity/                # JPA entities (26 entities)
+│   └── enums/             # DifficultyLevel, ContentType, ConceptStatus, UserRole, ApplicationStatus, etc.
 ├── exception/             # GlobalExceptionHandler, ResourceNotFoundException
 ├── mapper/                # MapStruct mappers
-├── repository/            # Spring Data JPA repositories (19 repos)
+├── repository/            # Spring Data JPA repositories (20 repos)
 ├── service/               # Service interfaces
 │   └── impl/              # Service implementations
 └── websocket/             # WebSocket message handlers
@@ -66,6 +82,7 @@ User → UserLearningProfile, UserConceptProgress, UserWeakArea
 User → XPEvent, UserBadge → Badge
 Course → LearningPath → LearningStep
 User → AIInteraction, UserAttempt, Payment, Notification
+User → InstructorApplication (OneToOne)
 ```
 
 ## Database
@@ -88,13 +105,25 @@ User → AIInteraction, UserAttempt, Payment, Notification
 - **Auth**: Self-issued HMAC-SHA256 JWT (Nimbus JOSE library from spring-boot-starter-oauth2-resource-server)
 - **JwtTokenProvider** (`config/JwtTokenProvider.java`): generates tokens with userId (subject), username, email, displayName, roles claims
 - **SecurityConfig** (`config/SecurityConfig.java`): NimbusJwtDecoder with SecretKeySpec, BCryptPasswordEncoder
+- **JwtAuthenticationConverter**: Maps JWT `roles` claim to `ROLE_` Spring Security authorities (required for hasRole() and @PreAuthorize)
+- **@EnableMethodSecurity**: Enables `@PreAuthorize` on controller methods
 - **AuthController** (`controller/AuthController.java`):
-  - `POST /api/public/auth/register` — creates user, returns JWT + user info
+  - `POST /api/public/auth/register` — creates STUDENT user, returns JWT + user info
   - `POST /api/public/auth/login` — accepts username OR email, validates BCrypt password, returns JWT
+  - `POST /api/public/auth/register-instructor` — creates PENDING_INSTRUCTOR user, returns JWT
   - Duplicate email/username returns 409 Conflict
+- **InstructorApplicationController** (`controller/InstructorApplicationController.java`):
+  - `GET /api/instructor-application` — get current user's application
+  - `POST /api/instructor-application` — submit/update application (validates PENDING_INSTRUCTOR role)
+- **AdminInstructorController** (`controller/AdminInstructorController.java`):
+  - `GET /api/admin/instructor-applications?status=PENDING` — list by status
+  - `GET /api/admin/instructor-applications/{id}` — application detail
+  - `POST /api/admin/instructor-applications/{id}/approve` — approve, upgrade role to INSTRUCTOR
+  - `POST /api/admin/instructor-applications/{id}/reject` — reject with optional notes
 - **Public endpoints**: `/api/public/**`, `GET /api/courses/**`, `/actuator/health`, `/ws/**`
 - **Authenticated**: all other endpoints require `Authorization: Bearer <jwt>` header
-- **Admin**: `/api/admin/**` requires `ROLE_ADMIN`
+- **Admin**: `/api/admin/**` requires `hasRole("ADMIN")`
+- **Instructor guard**: `@PreAuthorize("hasAnyRole('INSTRUCTOR', 'ADMIN')")` on CourseController create/update/publish
 - JWT subject = user UUID (used by `@AuthenticationPrincipal Jwt jwt` → `jwt.getSubject()`)
 - `/api/public/seed` — POST endpoint to seed demo data (idempotent)
 - **Test users in DB**: testuser1/testpass123, testuser2/testpass123
@@ -112,7 +141,8 @@ User → AIInteraction, UserAttempt, Payment, Notification
 - `DifficultyLevel`: BEGINNER, EASY, MEDIUM, HARD, ADVANCED
 - `ContentType`: TEXT, VIDEO, INTERACTIVE, CODE_EXERCISE, DIAGRAM, QUIZ, SIMULATION, AUDIO
 - `ConceptStatus`: NOT_STARTED, IN_PROGRESS, STRUGGLING, MASTERED, REVIEW_NEEDED
-- `UserRole`: STUDENT, INSTRUCTOR, ADMIN, CONTENT_CREATOR
+- `UserRole`: STUDENT, PENDING_INSTRUCTOR, INSTRUCTOR, ADMIN, ENTERPRISE_ADMIN
+- `ApplicationStatus`: PENDING, UNDER_REVIEW, APPROVED, REJECTED
 - `QuestionType`: MULTIPLE_CHOICE, TRUE_FALSE, SHORT_ANSWER, CODE_COMPLETION, CODE_DEBUG, MATCHING, ORDER
 
 ## Environment Variables
@@ -144,14 +174,17 @@ User → AIInteraction, UserAttempt, Payment, Notification
 
 ## Current Status (Updated April 15, 2026)
 - **LIVE** on Railway — all endpoints working
-- **5 courses seeded** with full knowledge graph (modules → topics → concepts → learning units, 50+ questions)
-- **Auth working**: Self-issued JWT auth — register, login, logout
+- **5 courses seeded** with full knowledge graph (modules → topics → concepts → learning units, 50+ questions, categories)
+- **Auth working**: Self-issued JWT auth — register, login, logout, register-instructor
+- **JWT roles mapped**: JwtAuthenticationConverter maps `roles` claim to `ROLE_` Spring Security authorities
 - **AI Tutor working**: GPT-4o Socratic method, context-aware, hint escalation (levels 1-4)
 - **Enrollment working**: Enroll, unenroll, enrollment status check, progress tracking, completion
 - **Gamification working**: XP (10 enrollment, 10 correct answer, 50 mastery, 2 AI), streaks, badges, leaderboard
 - **Adaptive engine working**: MasteryCalculator (M=0.4S+0.2C+0.2R+0.2T), AdaptiveEngine (advance/reinforce/remediate), SpacedRepetitionEngine (SM-2)
 - **Assessment working**: Quiz endpoints, multiple question types, XP on correct, adaptive difficulty
-- **Instructor working**: Course CRUD, DOCX import, module/topic/concept CRUD, Cloudinary media upload
+- **Instructor onboarding working**: Register as PENDING_INSTRUCTOR → submit application → admin review → approve/reject
+- **Instructor course CRUD working**: Create/update/publish (guarded by @PreAuthorize), DOCX import, Cloudinary upload
+- **Course catalog filtering working**: GET /api/courses/filter (search, category, difficulty, duration), GET /api/courses/categories
 - **Dashboard working**: Enrolled courses, weak areas, review queue, badges, XP, rank
 - **Learning history working**: Per-course progress, recent activity feed, timezone-correct timestamps
 - **Profile/Settings working**: GET/PUT /api/users/me, change password, delete account
@@ -182,11 +215,27 @@ User → AIInteraction, UserAttempt, Payment, Notification
 - `controller/UserProfileController.java` — NEW: profile CRUD, change password, delete account
 - `dto/request/CreateConceptRequest.java` — removed @NotNull/@NotBlank annotations
 
+## Bugs Fixed (April 15, 2026)
+9. JWT roles not mapped to Spring Security authorities → added JwtAuthenticationConverter bean
+10. hasRole("ADMIN") / @PreAuthorize never matched → now maps JWT `roles` claim to `ROLE_` authorities
+11. Categories missing on existing seed data → added backfill logic in SeedController "already seeded" block
+12. Instant instructor role upgrade (no vetting) → replaced with PENDING_INSTRUCTOR → application → admin approval flow
+
+## Files Added/Modified (April 15)
+- `config/SecurityConfig.java` — MODIFIED: added JwtAuthenticationConverter, @EnableMethodSecurity, maps roles claim to ROLE_ authorities
+- `controller/AuthController.java` — MODIFIED: added POST /api/public/auth/register-instructor endpoint
+- `controller/CourseController.java` — MODIFIED: added @PreAuthorize("hasAnyRole('INSTRUCTOR', 'ADMIN')") on create/update/publish
+- `controller/AdminInstructorController.java` — NEW: admin review of instructor applications (list, detail, approve, reject)
+- `controller/InstructorApplicationController.java` — NEW: submit/view instructor application
+- `controller/SeedController.java` — MODIFIED: category backfill for existing courses
+- `entity/InstructorApplication.java` — NEW: OneToOne with User, all profile fields (headline, cvUrl, linkedinUrl, githubUrl, websiteUrl, yearsTeaching, currentInstitution, teachingDescription, youtubeChannelUrl, youtubeSubscribers, otherPlatforms, expertise, whyTeach, status, adminNotes, reviewedBy, reviewedAt)
+- `entity/enums/ApplicationStatus.java` — NEW: PENDING, UNDER_REVIEW, APPROVED, REJECTED
+- `entity/enums/UserRole.java` — MODIFIED: added PENDING_INSTRUCTOR
+- `repository/InstructorApplicationRepository.java` — NEW: findByUserId, findByStatusOrderByCreatedAtAsc, existsByUserId
+
 ## Features Not Yet Implemented
-- Course catalog filter endpoint (difficulty/category/tags)
 - XP-based levels/tier progression
 - Pre-assessment fast-track (diagnostic at module start)
-- Admin dashboard endpoints
 - Stripe payment flow
 - Pinecone/RAG vector search for AI tutor context
 - WebSocket for AI tutor streaming (currently HTTP POST; notification handlers exist)
