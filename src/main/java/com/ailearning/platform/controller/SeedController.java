@@ -173,7 +173,25 @@ public class SeedController {
                     userRepository.save(u);
                 }
             });
-            return ResponseEntity.ok(Map.of("message", "Data already seeded", "courses", courseRepository.count()));
+            // Backfill categories on existing courses
+            Map<String, String> categoryMap = Map.of(
+                "Machine Learning Fundamentals", "AI & Machine Learning",
+                "Deep Learning with Neural Networks", "AI & Machine Learning",
+                "Natural Language Processing with Transformers", "AI & Machine Learning",
+                "Data Science with Python", "Data Science",
+                "Generative AI and Prompt Engineering", "Generative AI"
+            );
+            long updated = 0;
+            for (var entry : categoryMap.entrySet()) {
+                for (Course c : courseRepository.findAll()) {
+                    if (c.getTitle().equals(entry.getKey()) && c.getCategory() == null) {
+                        c.setCategory(entry.getValue());
+                        courseRepository.save(c);
+                        updated++;
+                    }
+                }
+            }
+            return ResponseEntity.ok(Map.of("message", "Data already seeded", "courses", courseRepository.count(), "categoriesUpdated", updated));
         }
 
         // Create instructor user
