@@ -73,6 +73,35 @@ public class AuthController {
         return ResponseEntity.ok(buildAuthResponse(user, token, roles));
     }
 
+    @PostMapping("/api/public/auth/register-instructor")
+    public ResponseEntity<AuthResponse> registerInstructor(@Valid @RequestBody RegisterRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(AuthResponse.builder().build());
+        }
+        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(AuthResponse.builder().build());
+        }
+
+        User user = User.builder()
+                .keycloakId("local-" + UUID.randomUUID())
+                .email(request.getEmail())
+                .username(request.getUsername())
+                .fullName(request.getDisplayName())
+                .passwordHash(passwordEncoder.encode(request.getPassword()))
+                .role(UserRole.PENDING_INSTRUCTOR)
+                .build();
+
+        user = userRepository.save(user);
+
+        List<String> roles = List.of(user.getRole().name());
+        String token = jwtTokenProvider.generateToken(
+                user.getId(), user.getUsername(), user.getEmail(), user.getFullName(), roles);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(buildAuthResponse(user, token, roles));
+    }
+
     @PostMapping("/api/auth/become-instructor")
     public ResponseEntity<AuthResponse> becomeInstructor(@AuthenticationPrincipal Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());

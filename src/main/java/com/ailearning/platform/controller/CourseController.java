@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -66,6 +67,7 @@ public class CourseController {
         return ResponseEntity.ok(courseService.getCourseWithTree(courseId));
     }
 
+    @PreAuthorize("hasAnyRole('INSTRUCTOR', 'ADMIN')")
     @PostMapping("/courses")
     public ResponseEntity<CourseResponse> createCourse(
             @Valid @RequestBody CreateCourseRequest request,
@@ -75,6 +77,7 @@ public class CourseController {
                 .body(courseService.createCourse(request, userId));
     }
 
+    @PreAuthorize("hasAnyRole('INSTRUCTOR', 'ADMIN')")
     @PutMapping("/courses/{courseId}")
     public ResponseEntity<CourseResponse> updateCourse(
             @PathVariable UUID courseId,
@@ -84,6 +87,7 @@ public class CourseController {
         return ResponseEntity.ok(courseService.updateCourse(courseId, request, userId));
     }
 
+    @PreAuthorize("hasAnyRole('INSTRUCTOR', 'ADMIN')")
     @PostMapping("/courses/{courseId}/publish")
     public ResponseEntity<Void> publishCourse(
             @PathVariable UUID courseId,

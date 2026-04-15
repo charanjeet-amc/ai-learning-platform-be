@@ -1,5 +1,5 @@
 package com.ailearning.platform.entity.enums;
 
 public enum UserRole {
-    STUDENT, INSTRUCTOR, ADMIN, ENTERPRISE_ADMIN
+    STUDENT, PENDING_INSTRUCTOR, INSTRUCTOR, ADMIN, ENTERPRISE_ADMIN
 }
