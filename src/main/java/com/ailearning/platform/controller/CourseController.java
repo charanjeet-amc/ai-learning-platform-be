@@ -3,6 +3,7 @@ package com.ailearning.platform.controller;
 import com.ailearning.platform.dto.request.CreateCourseRequest;
 import com.ailearning.platform.dto.response.CourseProgressResponse;
 import com.ailearning.platform.dto.response.CourseResponse;
+import com.ailearning.platform.entity.enums.DifficultyLevel;
 import com.ailearning.platform.service.CourseService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -35,6 +37,23 @@ public class CourseController {
             @RequestParam String q,
             @PageableDefault(size = 12) Pageable pageable) {
         return ResponseEntity.ok(courseService.searchCourses(q, pageable));
+    }
+
+    @GetMapping("/courses/filter")
+    public ResponseEntity<Page<CourseResponse>> filterCourses(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) DifficultyLevel difficulty,
+            @RequestParam(required = false) Integer minDuration,
+            @RequestParam(required = false) Integer maxDuration,
+            @RequestParam(required = false) String q,
+            @PageableDefault(size = 12) Pageable pageable) {
+        return ResponseEntity.ok(
+                courseService.filterCourses(category, difficulty, minDuration, maxDuration, q, pageable));
+    }
+
+    @GetMapping("/courses/categories")
+    public ResponseEntity<List<String>> getCategories() {
+        return ResponseEntity.ok(courseService.getCategories());
     }
 
     @GetMapping("/courses/{courseId}")

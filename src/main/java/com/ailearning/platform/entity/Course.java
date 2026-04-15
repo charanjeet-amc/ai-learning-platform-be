@@ -65,6 +65,8 @@ public class Course {
     @Column(columnDefinition = "TEXT[]")
     private String[] tags;
 
+    private String category;
+
     @Builder.Default
     private Boolean published = false;
 

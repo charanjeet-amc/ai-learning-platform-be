@@ -5,6 +5,7 @@ import com.ailearning.platform.entity.enums.DifficultyLevel;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -13,7 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface CourseRepository extends JpaRepository<Course, UUID> {
+public interface CourseRepository extends JpaRepository<Course, UUID>, JpaSpecificationExecutor<Course> {
 
     Page<Course> findByPublishedTrue(Pageable pageable);
 
@@ -33,4 +34,7 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
 
     @Query("SELECT c FROM Course c WHERE c.published = true ORDER BY c.enrollmentCount DESC")
     List<Course> findPopularCourses(Pageable pageable);
+
+    @Query("SELECT DISTINCT c.category FROM Course c WHERE c.published = true AND c.category IS NOT NULL ORDER BY c.category")
+    List<String> findDistinctCategories();
 }

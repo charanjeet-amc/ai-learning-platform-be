@@ -22,6 +22,7 @@ public class CourseResponse {
     private String[] skillsOutcome;
     private String prerequisites;
     private String[] tags;
+    private String category;
     private Boolean published;
     private Double rating;
     private Long enrollmentCount;

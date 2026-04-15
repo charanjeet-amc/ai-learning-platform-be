@@ -5,17 +5,21 @@ import com.ailearning.platform.dto.response.*;
 import com.ailearning.platform.entity.*;
 import com.ailearning.platform.entity.Module;
 import com.ailearning.platform.entity.enums.ConceptStatus;
+import com.ailearning.platform.entity.enums.DifficultyLevel;
 import com.ailearning.platform.exception.ResourceNotFoundException;
 import com.ailearning.platform.repository.*;
 import com.ailearning.platform.service.CourseService;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -48,6 +52,7 @@ public class CourseServiceImpl implements CourseService {
                 .skillsOutcome(request.getSkillsOutcome())
                 .prerequisites(request.getPrerequisites())
                 .tags(request.getTags())
+                .category(request.getCategory())
                 .price(request.getPrice())
                 .createdBy(creator)
                 .build();
@@ -82,6 +87,45 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    public Page<CourseResponse> filterCourses(String category, DifficultyLevel difficulty,
+                                               Integer minDuration, Integer maxDuration,
+                                               String q, Pageable pageable) {
+        Specification<Course> spec = (root, query1, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.isTrue(root.get("published")));
+
+            if (category != null && !category.isBlank()) {
+                predicates.add(cb.equal(root.get("category"), category));
+            }
+            if (difficulty != null) {
+                predicates.add(cb.equal(root.get("difficulty"), difficulty));
+            }
+            if (minDuration != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("estimatedDurationMinutes"), minDuration));
+            }
+            if (maxDuration != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("estimatedDurationMinutes"), maxDuration));
+            }
+            if (q != null && !q.isBlank()) {
+                String pattern = "%" + q.toLowerCase() + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("title")), pattern),
+                        cb.like(cb.lower(root.get("description")), pattern)
+                ));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        return courseRepository.findAll(spec, pageable).map(this::mapToResponse);
+    }
+
+    @Override
+    public List<String> getCategories() {
+        return courseRepository.findDistinctCategories();
+    }
+
+    @Override
     @Transactional
     @CacheEvict(value = "courses", key = "#courseId")
     public CourseResponse updateCourse(UUID courseId, CreateCourseRequest request, UUID userId) {
@@ -98,6 +142,7 @@ public class CourseServiceImpl implements CourseService {
         course.setSkillsOutcome(request.getSkillsOutcome());
         course.setPrerequisites(request.getPrerequisites());
         course.setTags(request.getTags());
+        course.setCategory(request.getCategory());
         course.setPrice(request.getPrice());
 
         course = courseRepository.save(course);
@@ -166,6 +211,7 @@ public class CourseServiceImpl implements CourseService {
                 .skillsOutcome(course.getSkillsOutcome())
                 .prerequisites(course.getPrerequisites())
                 .tags(course.getTags())
+                .category(course.getCategory())
                 .published(course.getPublished())
                 .rating(course.getRating())
                 .enrollmentCount(course.getEnrollmentCount())
