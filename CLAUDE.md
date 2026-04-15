@@ -142,13 +142,19 @@ User → AIInteraction, UserAttempt, Payment, Notification
 - `@Cacheable` / `@CacheEvict` for Redis caching on course reads/writes
 - `findByPublishedTrue()` — courses must have `published=true` to appear in listings
 
-## Current Status (April 13, 2026)
+## Current Status (Updated April 15, 2026)
 - **LIVE** on Railway — all endpoints working
-- **5 courses seeded** with full knowledge graph (modules → topics → concepts → learning units)
+- **5 courses seeded** with full knowledge graph (modules → topics → concepts → learning units, 50+ questions)
 - **Auth working**: Self-issued JWT auth — register, login, logout
 - **AI Tutor working**: GPT-4o Socratic method, context-aware, hint escalation (levels 1-4)
-- **Enrollment working**: Enroll, unenroll, enrollment status check
-- **Gamification**: XP awarded for enrollment (10 XP) and AI tutor interactions (2 XP)
+- **Enrollment working**: Enroll, unenroll, enrollment status check, progress tracking, completion
+- **Gamification working**: XP (10 enrollment, 10 correct answer, 50 mastery, 2 AI), streaks, badges, leaderboard
+- **Adaptive engine working**: MasteryCalculator (M=0.4S+0.2C+0.2R+0.2T), AdaptiveEngine (advance/reinforce/remediate), SpacedRepetitionEngine (SM-2)
+- **Assessment working**: Quiz endpoints, multiple question types, XP on correct, adaptive difficulty
+- **Instructor working**: Course CRUD, DOCX import, module/topic/concept CRUD, Cloudinary media upload
+- **Dashboard working**: Enrolled courses, weak areas, review queue, badges, XP, rank
+- **Learning history working**: Per-course progress, recent activity feed, timezone-correct timestamps
+- **Profile/Settings working**: GET/PUT /api/users/me, change password, delete account
 
 ## Important Field Mappings (Backend DTO ↔ Frontend)
 - `LearningUnitResponse.contentType` (entity field is `type` — mapped in `CourseServiceImpl`)
@@ -156,6 +162,8 @@ User → AIInteraction, UserAttempt, Payment, Notification
 - `AITutorResponse.message` (frontend was reading `response` — fixed)
 - `AITutorResponse.sessionId` — auto-generated UUID if client doesn't send one
 - Seed data stores content as `{"body": "..."}` in JSONB
+- `User.fullName` → `display_name` DB column
+- `User.keycloakId` repurposed as bio field for local auth users
 
 ## Bugs Fixed (April 13, 2026)
 1. `prerequisites` TEXT mismatch — entity/DTOs changed to `String`
@@ -165,11 +173,20 @@ User → AIInteraction, UserAttempt, Payment, Notification
 5. AI Tutor `sessionId` null on save — DB has NOT NULL constraint; now auto-generates UUID
 6. AI Tutor field mismatches with frontend — aligned request/response field names
 
+## Bugs Fixed (April 14, 2026)
+7. Save concept failing — removed `@NotNull`/`@NotBlank` from `CreateConceptRequest` (update sends no topicId)
+8. Timestamps wrong timezone — added `JacksonConfig.java` to append 'Z' to LocalDateTime serialization (Railway JVM=UTC)
+
+## Files Added/Modified (April 14)
+- `config/JacksonConfig.java` — NEW: serializes LocalDateTime with 'Z' UTC suffix
+- `controller/UserProfileController.java` — NEW: profile CRUD, change password, delete account
+- `dto/request/CreateConceptRequest.java` — removed @NotNull/@NotBlank annotations
+
 ## Features Not Yet Implemented
-- Adaptive assessment AI logic (structure exists)
-- Spaced repetition scheduler
+- Course catalog filter endpoint (difficulty/category/tags)
+- XP-based levels/tier progression
+- Pre-assessment fast-track (diagnostic at module start)
+- Admin dashboard endpoints
 - Stripe payment flow
-- Instructor course creation flow
-- Admin dashboard
-- WebSocket real-time notifications (config exists, not used yet)
-- Richer course content beyond seed data
+- Pinecone/RAG vector search for AI tutor context
+- WebSocket for AI tutor streaming (currently HTTP POST; notification handlers exist)
