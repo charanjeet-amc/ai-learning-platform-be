@@ -39,6 +39,9 @@ public class User {
 
     private String avatarUrl;
 
+    @Column(columnDefinition = "TEXT")
+    private String bio;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default

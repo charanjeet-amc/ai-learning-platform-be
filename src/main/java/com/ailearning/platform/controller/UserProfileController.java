@@ -38,7 +38,7 @@ public class UserProfileController {
 
         if (request.getDisplayName() != null) user.setFullName(request.getDisplayName());
         if (request.getAvatarUrl() != null) user.setAvatarUrl(request.getAvatarUrl());
-        if (request.getBio() != null) user.setKeycloakId(request.getBio()); // reusing keycloakId field as bio for now
+        if (request.getBio() != null) user.setBio(request.getBio());
 
         userRepository.save(user);
         return ResponseEntity.ok(toResponse(user));
@@ -96,7 +96,7 @@ public class UserProfileController {
         r.setEmail(user.getEmail());
         r.setDisplayName(user.getFullName());
         r.setAvatarUrl(user.getAvatarUrl());
-        r.setBio(user.getKeycloakId()); // reusing keycloakId as bio
+        r.setBio(user.getBio());
         r.setRole(user.getRole().name());
         r.setSubscriptionTier(user.getSubscriptionTier().name());
         r.setTotalXp(user.getTotalXp());
