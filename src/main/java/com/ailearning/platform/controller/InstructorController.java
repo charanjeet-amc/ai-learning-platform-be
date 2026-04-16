@@ -113,7 +113,8 @@ public class InstructorController {
         UUID userId = extractUserId(jwt);
         ensureInstructor(userId);
         Course course = getCourseOwnedBy(courseId, userId);
-        if (course.getStatus() != CourseStatus.DRAFT && course.getStatus() != CourseStatus.CHANGES_REQUESTED) {
+        CourseStatus status = course.getStatus() != null ? course.getStatus() : CourseStatus.DRAFT;
+        if (status != CourseStatus.DRAFT && status != CourseStatus.CHANGES_REQUESTED) {
             return ResponseEntity.badRequest().build();
         }
         course.setStatus(CourseStatus.PENDING_APPROVAL);
@@ -133,7 +134,8 @@ public class InstructorController {
         Course course = getCourseOwnedBy(courseId, userId);
         // Only admin can delete published/pending courses; instructors can only delete drafts
         if (user.getRole() != UserRole.ADMIN) {
-            if (course.getStatus() != CourseStatus.DRAFT && course.getStatus() != CourseStatus.CHANGES_REQUESTED) {
+            CourseStatus delStatus = course.getStatus() != null ? course.getStatus() : CourseStatus.DRAFT;
+            if (delStatus != CourseStatus.DRAFT && delStatus != CourseStatus.CHANGES_REQUESTED) {
                 throw new org.springframework.security.access.AccessDeniedException(
                         "Only admin can delete published or pending courses");
             }
