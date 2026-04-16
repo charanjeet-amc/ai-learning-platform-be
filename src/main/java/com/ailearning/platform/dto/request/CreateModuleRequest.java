@@ -8,7 +8,6 @@ import java.util.UUID;
 
 @Data
 public class CreateModuleRequest {
-    @NotNull
     private UUID courseId;
     @NotBlank
     private String title;

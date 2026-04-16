@@ -8,7 +8,6 @@ import java.util.UUID;
 
 @Data
 public class CreateTopicRequest {
-    @NotNull
     private UUID moduleId;
     @NotBlank
     private String title;
