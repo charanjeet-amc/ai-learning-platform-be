@@ -53,8 +53,12 @@ public class InstructorController {
     @Transactional(readOnly = true)
     public ResponseEntity<List<CourseResponse>> getMyCourses(@AuthenticationPrincipal Jwt jwt) {
         UUID userId = extractUserId(jwt);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
         ensureInstructor(userId);
-        List<Course> courses = courseRepository.findByCreatedById(userId);
+        List<Course> courses = user.getRole() == UserRole.ADMIN
+                ? courseRepository.findAll()
+                : courseRepository.findByCreatedById(userId);
         return ResponseEntity.ok(courses.stream().map(this::mapCourseResponse).toList());
     }
 
