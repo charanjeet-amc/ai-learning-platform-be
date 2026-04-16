@@ -166,6 +166,19 @@ public class SeedController {
     @Transactional
     public ResponseEntity<Map<String, Object>> seedData() {
         if (courseRepository.count() > 0) {
+            // Create admin user if not exists
+            if (userRepository.findByEmail("admin@ailearning.com").isEmpty()) {
+                User admin = User.builder()
+                        .keycloakId("seed-admin-001")
+                        .email("admin@ailearning.com")
+                        .username("admin")
+                        .fullName("Platform Admin")
+                        .passwordHash(passwordEncoder.encode("admin123"))
+                        .role(UserRole.ADMIN)
+                        .totalXp(0L)
+                        .build();
+                userRepository.save(admin);
+            }
             // Fix existing instructor password if missing
             userRepository.findByEmail("dr.sarah.chen@ailearning.com").ifPresent(u -> {
                 if (u.getPasswordHash() == null || u.getPasswordHash().isBlank()) {
@@ -192,6 +205,20 @@ public class SeedController {
                 }
             }
             return ResponseEntity.ok(Map.of("message", "Data already seeded", "courses", courseRepository.count(), "categoriesUpdated", updated));
+        }
+
+        // Create admin user
+        if (userRepository.findByEmail("admin@ailearning.com").isEmpty()) {
+            User admin = User.builder()
+                    .keycloakId("seed-admin-001")
+                    .email("admin@ailearning.com")
+                    .username("admin")
+                    .fullName("Platform Admin")
+                    .passwordHash(passwordEncoder.encode("admin123"))
+                    .role(UserRole.ADMIN)
+                    .totalXp(0L)
+                    .build();
+            userRepository.save(admin);
         }
 
         // Create instructor user
