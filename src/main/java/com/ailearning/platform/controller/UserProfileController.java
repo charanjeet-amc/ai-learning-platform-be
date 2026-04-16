@@ -102,6 +102,7 @@ public class UserProfileController {
         r.setTotalXp(user.getTotalXp());
         r.setCurrentStreak(user.getCurrentStreak());
         r.setLongestStreak(user.getLongestStreak());
+        r.setHasPassword(user.getPasswordHash() != null);
         r.setCreatedAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null);
         return r;
     }
@@ -116,6 +117,7 @@ public class UserProfileController {
         private String bio;
         private String role;
         private String subscriptionTier;
+        private boolean hasPassword;
         private Long totalXp;
         private Integer currentStreak;
         private Integer longestStreak;
