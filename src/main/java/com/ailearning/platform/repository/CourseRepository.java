@@ -1,6 +1,7 @@
 package com.ailearning.platform.repository;
 
 import com.ailearning.platform.entity.Course;
+import com.ailearning.platform.entity.enums.CourseStatus;
 import com.ailearning.platform.entity.enums.DifficultyLevel;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,6 +30,8 @@ public interface CourseRepository extends JpaRepository<Course, UUID>, JpaSpecif
     Page<Course> findByIndustryVertical(@Param("vertical") String vertical, Pageable pageable);
 
     List<Course> findByCreatedById(UUID userId);
+
+    List<Course> findByStatus(CourseStatus status);
 
     boolean existsBySlug(String slug);
 

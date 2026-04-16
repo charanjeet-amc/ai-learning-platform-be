@@ -3,6 +3,7 @@ package com.ailearning.platform.controller;
 import com.ailearning.platform.entity.*;
 import com.ailearning.platform.entity.Module;
 import com.ailearning.platform.entity.enums.ContentType;
+import com.ailearning.platform.entity.enums.CourseStatus;
 import com.ailearning.platform.entity.enums.DifficultyLevel;
 import com.ailearning.platform.entity.enums.QuestionType;
 import com.ailearning.platform.entity.enums.UserRole;
@@ -263,6 +264,7 @@ public class SeedController {
                 .category("AI & Machine Learning")
                 .createdBy(instructor)
                 .published(true)
+                .status(CourseStatus.PUBLISHED)
                 .rating(4.8)
                 .enrollmentCount(12540L)
                 .estimatedDurationMinutes(2400)
@@ -352,6 +354,7 @@ public class SeedController {
                 .category("AI & Machine Learning")
                 .createdBy(instructor)
                 .published(true)
+                .status(CourseStatus.PUBLISHED)
                 .rating(4.9)
                 .enrollmentCount(8930L)
                 .estimatedDurationMinutes(3600)
@@ -413,6 +416,7 @@ public class SeedController {
                 .category("AI & Machine Learning")
                 .createdBy(instructor)
                 .published(true)
+                .status(CourseStatus.PUBLISHED)
                 .rating(4.7)
                 .enrollmentCount(6720L)
                 .estimatedDurationMinutes(3000)
@@ -457,6 +461,7 @@ public class SeedController {
                 .category("Data Science")
                 .createdBy(instructor)
                 .published(true)
+                .status(CourseStatus.PUBLISHED)
                 .rating(4.6)
                 .enrollmentCount(18200L)
                 .estimatedDurationMinutes(2100)
@@ -501,6 +506,7 @@ public class SeedController {
                 .category("Generative AI")
                 .createdBy(instructor)
                 .published(true)
+                .status(CourseStatus.PUBLISHED)
                 .rating(4.9)
                 .enrollmentCount(22100L)
                 .estimatedDurationMinutes(1800)

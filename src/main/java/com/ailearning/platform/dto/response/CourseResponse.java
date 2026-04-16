@@ -24,6 +24,8 @@ public class CourseResponse {
     private String[] tags;
     private String category;
     private Boolean published;
+    private String status;
+    private String adminFeedback;
     private Double rating;
     private Long enrollmentCount;
     private Double price;

@@ -87,7 +87,7 @@ public class CourseController {
         return ResponseEntity.ok(courseService.updateCourse(courseId, request, userId));
     }
 
-    @PreAuthorize("hasAnyRole('INSTRUCTOR', 'ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/courses/{courseId}/publish")
     public ResponseEntity<Void> publishCourse(
             @PathVariable UUID courseId,

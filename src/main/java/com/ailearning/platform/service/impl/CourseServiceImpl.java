@@ -156,6 +156,8 @@ public class CourseServiceImpl implements CourseService {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course", "id", courseId));
         course.setPublished(true);
+        course.setStatus(com.ailearning.platform.entity.enums.CourseStatus.PUBLISHED);
+        course.setAdminFeedback(null);
         courseRepository.save(course);
     }
 
@@ -213,6 +215,8 @@ public class CourseServiceImpl implements CourseService {
                 .tags(course.getTags())
                 .category(course.getCategory())
                 .published(course.getPublished())
+                .status(course.getStatus() != null ? course.getStatus().name() : "DRAFT")
+                .adminFeedback(course.getAdminFeedback())
                 .rating(course.getRating())
                 .enrollmentCount(course.getEnrollmentCount())
                 .price(course.getPrice())

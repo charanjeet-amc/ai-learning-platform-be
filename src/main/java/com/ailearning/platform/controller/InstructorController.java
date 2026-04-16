@@ -8,6 +8,7 @@ import com.ailearning.platform.dto.response.CourseResponse;
 import com.ailearning.platform.entity.*;
 import com.ailearning.platform.entity.Module;
 import com.ailearning.platform.entity.enums.ContentType;
+import com.ailearning.platform.entity.enums.CourseStatus;
 import com.ailearning.platform.entity.enums.DifficultyLevel;
 import com.ailearning.platform.entity.enums.UserRole;
 import com.ailearning.platform.exception.ResourceNotFoundException;
@@ -86,36 +87,37 @@ public class InstructorController {
     }
 
     @PutMapping("/courses/{courseId}")
+    @Transactional
     public ResponseEntity<CourseResponse> updateCourse(
             @PathVariable UUID courseId,
             @Valid @RequestBody CreateCourseRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         UUID userId = extractUserId(jwt);
         ensureInstructor(userId);
-        getCourseOwnedBy(courseId, userId); // Authorization check
+        Course course = getCourseOwnedBy(courseId, userId);
+        // If editing a published course, reset to draft (needs re-approval)
+        if (course.getStatus() == CourseStatus.PUBLISHED) {
+            course.setStatus(CourseStatus.DRAFT);
+            course.setPublished(false);
+            course.setAdminFeedback(null);
+            courseRepository.save(course);
+        }
         return ResponseEntity.ok(courseService.updateCourse(courseId, request, userId));
     }
 
-    @PostMapping("/courses/{courseId}/publish")
-    public ResponseEntity<Void> publishCourse(
-            @PathVariable UUID courseId,
-            @AuthenticationPrincipal Jwt jwt) {
-        UUID userId = extractUserId(jwt);
-        ensureInstructor(userId);
-        getCourseOwnedBy(courseId, userId);
-        courseService.publishCourse(courseId, userId);
-        return ResponseEntity.ok().build();
-    }
-
-    @PostMapping("/courses/{courseId}/unpublish")
+    @PostMapping("/courses/{courseId}/submit-for-approval")
     @Transactional
-    public ResponseEntity<Void> unpublishCourse(
+    public ResponseEntity<Void> submitForApproval(
             @PathVariable UUID courseId,
             @AuthenticationPrincipal Jwt jwt) {
         UUID userId = extractUserId(jwt);
         ensureInstructor(userId);
         Course course = getCourseOwnedBy(courseId, userId);
-        course.setPublished(false);
+        if (course.getStatus() != CourseStatus.DRAFT && course.getStatus() != CourseStatus.CHANGES_REQUESTED) {
+            return ResponseEntity.badRequest().build();
+        }
+        course.setStatus(CourseStatus.PENDING_APPROVAL);
+        course.setAdminFeedback(null);
         courseRepository.save(course);
         return ResponseEntity.ok().build();
     }
@@ -125,8 +127,17 @@ public class InstructorController {
             @PathVariable UUID courseId,
             @AuthenticationPrincipal Jwt jwt) {
         UUID userId = extractUserId(jwt);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
         ensureInstructor(userId);
-        getCourseOwnedBy(courseId, userId);
+        Course course = getCourseOwnedBy(courseId, userId);
+        // Only admin can delete published/pending courses; instructors can only delete drafts
+        if (user.getRole() != UserRole.ADMIN) {
+            if (course.getStatus() != CourseStatus.DRAFT && course.getStatus() != CourseStatus.CHANGES_REQUESTED) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "Only admin can delete published or pending courses");
+            }
+        }
         courseService.deleteCourse(courseId, userId);
         return ResponseEntity.noContent().build();
     }
@@ -467,6 +478,8 @@ public class InstructorController {
                 .prerequisites(course.getPrerequisites())
                 .tags(course.getTags())
                 .published(course.getPublished())
+                .status(course.getStatus() != null ? course.getStatus().name() : "DRAFT")
+                .adminFeedback(course.getAdminFeedback())
                 .rating(course.getRating())
                 .enrollmentCount(course.getEnrollmentCount())
                 .price(course.getPrice())

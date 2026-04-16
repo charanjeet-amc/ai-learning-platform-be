@@ -1,5 +1,6 @@
 package com.ailearning.platform.entity;
 
+import com.ailearning.platform.entity.enums.CourseStatus;
 import com.ailearning.platform.entity.enums.DifficultyLevel;
 import jakarta.persistence.*;
 import lombok.*;
@@ -69,6 +70,13 @@ public class Course {
 
     @Builder.Default
     private Boolean published = false;
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private CourseStatus status = CourseStatus.DRAFT;
+
+    @Column(columnDefinition = "TEXT")
+    private String adminFeedback;
 
     @Builder.Default
     private Double rating = 0.0;
