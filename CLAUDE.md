@@ -21,7 +21,7 @@ Spring Boot REST API implementing all of the above.
 - **Java 21**, **Spring Boot 3.4.4**, **Maven**
 - **PostgreSQL 16** (Flyway migrations), **Redis 7** (caching)
 - **Self-issued HMAC-SHA256 JWT** auth (replaced Keycloak — no Keycloak server needed)
-- **OpenAI Java SDK 4.31.0** (GPT-4o) — AI Tutor with Socratic method
+- **OpenAI Java SDK 4.31.0** (GPT-4o) — AI Tutor with Socratic method + AI-powered answer evaluation
 - **Stripe** payments (wired, not yet active), **WebSocket/STOMP** real-time (config exists)
 - **Lombok**, **MapStruct**, **Hibernate**
 
@@ -43,6 +43,7 @@ src/main/java/com/ailearning/platform/
 ├── ai/                    # OpenAI integration (tutor, content generation)
 ├── config/                # SecurityConfig (JwtAuthenticationConverter), CorsConfig, RedisConfig, WebSocketConfig, JacksonConfig
 ├── controller/
+│   ├── AdminCourseController.java       # /api/admin/courses (approve, reject, edit any course)
 │   ├── AdminInstructorController.java   # GET/POST /api/admin/instructor-applications (list, detail, approve, reject)
 │   ├── AITutorController.java           # POST /api/ai-tutor
 │   ├── AssessmentController.java        # /api/assessments
@@ -56,18 +57,19 @@ src/main/java/com/ailearning/platform/
 │   ├── LearningHistoryController.java   # /api/learning-history
 │   ├── LearningPathController.java      # /api/learning-paths
 │   ├── OAuth2Controller.java            # /api/public/auth/oauth2
-│   ├── SeedController.java              # /api/public/seed (with category backfill)
+│   ├── SeedController.java              # /api/public/seed (with category backfill) + /seed-extra-questions
 │   └── UserProfileController.java       # /api/users/me
 ├── dto/
 │   ├── request/           # Incoming DTOs
-│   └── response/          # Outgoing DTOs
+│   └── response/          # Outgoing DTOs (incl. AnswerResultResponse with score + feedback)
 ├── entity/                # JPA entities (26 entities)
-│   └── enums/             # DifficultyLevel, ContentType, ConceptStatus, UserRole, ApplicationStatus, etc.
+│   └── enums/             # DifficultyLevel, ContentType, ConceptStatus, UserRole, ApplicationStatus, CourseStatus, QuestionType, etc.
 ├── exception/             # GlobalExceptionHandler, ResourceNotFoundException
 ├── mapper/                # MapStruct mappers
 ├── repository/            # Spring Data JPA repositories (20 repos)
 ├── service/               # Service interfaces
 │   └── impl/              # Service implementations
+│       └── AssessmentServiceImpl.java  # AI-powered evaluation (GPT-4o) for SUBJECTIVE/CODING
 └── websocket/             # WebSocket message handlers
 ```
 
@@ -122,7 +124,7 @@ User → InstructorApplication (OneToOne)
   - `POST /api/admin/instructor-applications/{id}/reject` — reject with optional notes
 - **Public endpoints**: `/api/public/**`, `GET /api/courses/**`, `/actuator/health`, `/ws/**`
 - **Authenticated**: all other endpoints require `Authorization: Bearer <jwt>` header
-- **Admin**: `/api/admin/**` requires `hasRole("ADMIN")`
+- **Admin**: `/api/admin/**` requires `hasRole("ADMIN")` (instructor review + course management)
 - **Instructor guard**: `@PreAuthorize("hasAnyRole('INSTRUCTOR', 'ADMIN')")` on CourseController create/update/publish
 - JWT subject = user UUID (used by `@AuthenticationPrincipal Jwt jwt` → `jwt.getSubject()`)
 - `/api/public/seed` — POST endpoint to seed demo data (idempotent)
@@ -143,7 +145,8 @@ User → InstructorApplication (OneToOne)
 - `ConceptStatus`: NOT_STARTED, IN_PROGRESS, STRUGGLING, MASTERED, REVIEW_NEEDED
 - `UserRole`: STUDENT, PENDING_INSTRUCTOR, INSTRUCTOR, ADMIN, ENTERPRISE_ADMIN
 - `ApplicationStatus`: PENDING, UNDER_REVIEW, APPROVED, REJECTED
-- `QuestionType`: MULTIPLE_CHOICE, TRUE_FALSE, SHORT_ANSWER, CODE_COMPLETION, CODE_DEBUG, MATCHING, ORDER
+- `CourseStatus`: DRAFT, PENDING_APPROVAL, PUBLISHED, CHANGES_REQUESTED
+- `QuestionType`: MCQ, CODING, SUBJECTIVE, SCENARIO_BASED
 
 ## Environment Variables
 | Variable | Default | Description |
@@ -172,18 +175,22 @@ User → InstructorApplication (OneToOne)
 - `@Cacheable` / `@CacheEvict` for Redis caching on course reads/writes
 - `findByPublishedTrue()` — courses must have `published=true` to appear in listings
 
-## Current Status (Updated April 15, 2026)
+## Current Status (Updated April 17, 2026)
 - **LIVE** on Railway — all endpoints working
-- **5 courses seeded** with full knowledge graph (modules → topics → concepts → learning units, 50+ questions, categories)
+- **5 courses seeded** with full knowledge graph (modules → topics → concepts → learning units, 61+ questions, categories)
 - **Auth working**: Self-issued JWT auth — register, login, logout, register-instructor
 - **JWT roles mapped**: JwtAuthenticationConverter maps `roles` claim to `ROLE_` Spring Security authorities
 - **AI Tutor working**: GPT-4o Socratic method, context-aware, hint escalation (levels 1-4)
+- **AI-powered answer evaluation**: GPT-4o evaluates SUBJECTIVE/CODING answers semantically with score (0-1) + detailed feedback; falls back to keyword matching if API fails
+- **Multiple question types**: MCQ, CODING, SUBJECTIVE, SCENARIO_BASED with type-specific evaluation
 - **Enrollment working**: Enroll, unenroll, enrollment status check, progress tracking, completion
 - **Gamification working**: XP (10 enrollment, 10 correct answer, 50 mastery, 2 AI), streaks, badges, leaderboard
 - **Adaptive engine working**: MasteryCalculator (M=0.4S+0.2C+0.2R+0.2T), AdaptiveEngine (advance/reinforce/remediate), SpacedRepetitionEngine (SM-2)
-- **Assessment working**: Quiz endpoints, multiple question types, XP on correct, adaptive difficulty
+- **Assessment working**: Quiz endpoints, multiple question types, XP on correct, adaptive difficulty, AI evaluation
 - **Instructor onboarding working**: Register as PENDING_INSTRUCTOR → submit application → admin review → approve/reject
 - **Instructor course CRUD working**: Create/update/publish (guarded by @PreAuthorize), DOCX import, Cloudinary upload
+- **Course approval workflow**: DRAFT → PENDING_APPROVAL → PUBLISHED / CHANGES_REQUESTED (AdminCourseController)
+- **Admin features**: Instructor review + course approval/rejection + edit any course
 - **Course catalog filtering working**: GET /api/courses/filter (search, category, difficulty, duration), GET /api/courses/categories
 - **Dashboard working**: Enrolled courses, weak areas, review queue, badges, XP, rank
 - **Learning history working**: Per-course progress, recent activity feed, timezone-correct timestamps
