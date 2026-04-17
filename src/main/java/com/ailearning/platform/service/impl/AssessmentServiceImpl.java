@@ -16,6 +16,12 @@ import com.ailearning.platform.service.AssessmentService;
 import com.ailearning.platform.service.EnrollmentService;
 import com.ailearning.platform.service.GamificationService;
 import com.ailearning.platform.dto.response.UserProgressResponse;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openai.client.OpenAIClient;
+import com.openai.models.ChatModel;
+import com.openai.models.chat.completions.ChatCompletion;
+import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -43,6 +49,10 @@ public class AssessmentServiceImpl implements AssessmentService {
     private final QuestionGeneratorEngine questionGeneratorEngine;
     private final GamificationService gamificationService;
     private final EnrollmentService enrollmentService;
+    private final OpenAIClient openAIClient;
+    private final ObjectMapper objectMapper;
+
+    private record AIEvaluation(boolean correct, double score, String feedback) {}
 
     @Override
     public List<QuestionResponse> getQuestionsForConcept(UUID conceptId, UUID userId) {
@@ -76,8 +86,19 @@ public class AssessmentServiceImpl implements AssessmentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Question", "id", request.getQuestionId()));
 
         // Validate the answer
-        boolean correct = validateAnswer(question, request.getAnswer());
-        double score = correct ? 1.0 : 0.0;
+        boolean correct;
+        double score;
+        String aiFeedback = null;
+
+        if (question.getType() == QuestionType.SUBJECTIVE || question.getType() == QuestionType.CODING) {
+            AIEvaluation eval = evaluateWithAI(question, request.getAnswer());
+            correct = eval.correct();
+            score = eval.score();
+            aiFeedback = eval.feedback();
+        } else {
+            correct = validateAnswer(question, request.getAnswer());
+            score = correct ? 1.0 : 0.0;
+        }
 
         // Record the attempt
         UserAttempt attempt = UserAttempt.builder()
@@ -163,12 +184,15 @@ public class AssessmentServiceImpl implements AssessmentService {
             nextConceptId = adaptiveEngine.determineNextConcept(userId, conceptId);
         }
 
+        String feedbackText = aiFeedback != null ? aiFeedback
+                : (correct ? "Excellent work!" : "Not quite right. Let's review this concept.");
+
         return AnswerResultResponse.builder()
                 .attemptId(attempt.getId())
                 .correct(correct)
                 .score(score)
                 .explanation(question.getExplanation())
-                .feedback(correct ? "Excellent work!" : "Not quite right. Let's review this concept.")
+                .feedback(feedbackText)
                 .updatedMastery(mastery)
                 .nextAction(nextAction)
                 .xpEarned(xpEarned)
@@ -187,7 +211,6 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     private boolean validateAnswer(Question question, Map<String, Object> answer) {
-        // Prefer correctAnswer field on entity, fall back to metadata
         String correctAnswer = question.getCorrectAnswer();
         if (correctAnswer == null || correctAnswer.isEmpty()) {
             Map<String, Object> metadata = question.getMetadata();
@@ -197,35 +220,115 @@ public class AssessmentServiceImpl implements AssessmentService {
         }
 
         Object userAnswer = answer.get("answer");
-
         if (correctAnswer == null || userAnswer == null) {
             return false;
         }
 
-        String userStr = userAnswer.toString().trim().toLowerCase();
+        return correctAnswer.trim().equalsIgnoreCase(userAnswer.toString().trim());
+    }
+
+    private AIEvaluation evaluateWithAI(Question question, Map<String, Object> answer) {
+        Object userAnswer = answer.get("answer");
+        if (userAnswer == null || userAnswer.toString().isBlank()) {
+            return new AIEvaluation(false, 0.0, "No answer was provided.");
+        }
+
+        String questionType = question.getType() == QuestionType.CODING ? "CODING" : "SUBJECTIVE";
+        String correctAnswer = question.getCorrectAnswer() != null ? question.getCorrectAnswer() : "";
+
+        String systemPrompt = """
+            You are an expert educational assessment evaluator. Evaluate the student's answer accurately and fairly.
+
+            RULES:
+            - For SUBJECTIVE answers: check if the student demonstrates understanding of the key concepts. \
+            Don't require exact wording — assess semantic correctness.
+            - For CODING answers: check logical correctness, not exact syntax. The code doesn't need to compile \
+            perfectly — focus on whether the approach and logic are correct.
+            - Be encouraging but honest. Give specific feedback on what was right and what could be improved.
+            - Award partial credit when the student shows partial understanding.
+
+            Return ONLY valid JSON (no markdown fences) in this exact format:
+            {"correct": true/false, "score": 0.0-1.0, "feedback": "Your specific feedback here"}
+
+            Score guidelines:
+            - 1.0 = Fully correct
+            - 0.7-0.9 = Mostly correct with minor issues
+            - 0.4-0.6 = Partially correct, shows some understanding
+            - 0.1-0.3 = Mostly incorrect but shows effort
+            - 0.0 = Completely wrong or irrelevant
+            - "correct" should be true if score >= 0.7
+            """;
+
+        String userPrompt = String.format("""
+            Question Type: %s
+            Question: %s
+            Reference Answer: %s
+            Student's Answer: %s
+
+            Evaluate the student's answer and return JSON.""",
+                questionType, question.getQuestionText(), correctAnswer, userAnswer.toString());
+
+        try {
+            ChatCompletionCreateParams params = ChatCompletionCreateParams.builder()
+                    .model(ChatModel.GPT_4O)
+                    .addSystemMessage(systemPrompt)
+                    .addUserMessage(userPrompt)
+                    .temperature(0.3)
+                    .maxCompletionTokens(512)
+                    .build();
+
+            ChatCompletion completion = openAIClient.chat().completions().create(params);
+
+            String response = completion.choices().stream()
+                    .findFirst()
+                    .map(choice -> choice.message().content().orElse(""))
+                    .orElse("");
+
+            // Strip markdown fences if present
+            String cleanJson = response.strip();
+            if (cleanJson.startsWith("```")) {
+                cleanJson = cleanJson.replaceAll("^```\\w*\\n?", "").replaceAll("\\n?```$", "").strip();
+            }
+
+            JsonNode node = objectMapper.readTree(cleanJson);
+            boolean correct = node.path("correct").asBoolean(false);
+            double score = node.path("score").asDouble(0.0);
+            String feedback = node.path("feedback").asText("Answer evaluated by AI.");
+
+            return new AIEvaluation(correct, score, feedback);
+
+        } catch (Exception e) {
+            log.error("AI evaluation failed, falling back to keyword matching: {}", e.getMessage());
+            // Fallback: keyword-based matching
+            return fallbackEvaluation(question, userAnswer.toString());
+        }
+    }
+
+    private AIEvaluation fallbackEvaluation(Question question, String userAnswer) {
+        String correctAnswer = question.getCorrectAnswer();
+        if (correctAnswer == null) {
+            return new AIEvaluation(false, 0.0, "Unable to evaluate this answer.");
+        }
+
+        String userStr = userAnswer.trim().toLowerCase();
         String correctStr = correctAnswer.trim().toLowerCase();
 
-        // Exact match (works for MCQ and scenario-based)
-        if (correctStr.equalsIgnoreCase(userStr)) {
-            return true;
-        }
-
-        // For SUBJECTIVE and CODING: keyword-based matching
-        if (question.getType() == QuestionType.SUBJECTIVE || question.getType() == QuestionType.CODING) {
-            // Split correct answer into key phrases and check if user answer contains most of them
-            String[] keywords = correctStr.split("\\s+");
-            long matched = 0;
-            for (String kw : keywords) {
-                if (kw.length() >= 3 && userStr.contains(kw)) {
-                    matched++;
-                }
+        String[] keywords = correctStr.split("\\s+");
+        long matched = 0;
+        for (String kw : keywords) {
+            if (kw.length() >= 3 && userStr.contains(kw)) {
+                matched++;
             }
-            long significant = java.util.Arrays.stream(keywords).filter(k -> k.length() >= 3).count();
-            // Accept if at least 60% of significant keywords are present
-            return significant > 0 && (double) matched / significant >= 0.6;
         }
+        long significant = java.util.Arrays.stream(keywords).filter(k -> k.length() >= 3).count();
+        double score = significant > 0 ? (double) matched / significant : 0.0;
+        boolean correct = score >= 0.6;
 
-        return false;
+        String feedback = correct
+                ? "Your answer covers the key concepts."
+                : "Your answer is missing some important points. Review the explanation for more detail.";
+
+        return new AIEvaluation(correct, score, feedback);
     }
 
     private QuestionResponse mapToResponse(Question question) {
