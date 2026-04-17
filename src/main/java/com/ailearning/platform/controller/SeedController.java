@@ -160,6 +160,138 @@ public class SeedController {
             count += 2;
         }
 
+        // ── SUBJECTIVE questions ──
+        c = byCTitle.get("Definition of Machine Learning");
+        if (c != null) {
+            saveSubjectiveQuestion(c,
+                    "In your own words, explain the difference between traditional programming and machine learning.",
+                    "traditional programming uses explicit rules while machine learning learns patterns from data",
+                    DifficultyLevel.BEGINNER,
+                    "In traditional programming, developers write explicit rules. In ML, algorithms learn rules automatically from data — the program improves with experience rather than manual updates.");
+            count++;
+        }
+
+        c = byCTitle.get("Activation Functions");
+        if (c != null) {
+            saveSubjectiveQuestion(c,
+                    "Why does the sigmoid activation function suffer from the vanishing gradient problem?",
+                    "sigmoid outputs saturate near 0 and 1 where the gradient is nearly zero",
+                    DifficultyLevel.HARD,
+                    "Sigmoid squashes values to (0,1). For very large or small inputs, the output saturates and the derivative approaches 0, making gradients vanishingly small during backpropagation through many layers.");
+            count++;
+        }
+
+        c = byCTitle.get("Self-Attention and Query-Key-Value");
+        if (c != null) {
+            saveSubjectiveQuestion(c,
+                    "Explain why self-attention has O(n²) computational complexity with respect to sequence length.",
+                    "every token computes attention scores with every other token",
+                    DifficultyLevel.HARD,
+                    "Each of the n tokens must compute a dot product with every other n token to determine attention weights, resulting in n×n attention score computations — hence O(n²) complexity.");
+            count++;
+        }
+
+        // ── CODING questions ──
+        c = byCTitle.get("Simple Linear Regression");
+        if (c != null) {
+            saveCodingQuestion(c,
+                    "Write a Python function that computes the Mean Squared Error (MSE) between two lists of numbers: y_true and y_pred.",
+                    "def mse(y_true, y_pred):\n    # Your code here\n    pass",
+                    "python",
+                    "sum((a - b) ** 2 for a, b in zip(y_true, y_pred)) / len(y_true)",
+                    DifficultyLevel.BEGINNER,
+                    "MSE = (1/n) * Σ(y_true - y_pred)². Iterate over pairs, square the differences, and divide by the count.");
+            count++;
+        }
+
+        c = byCTitle.get("DataFrame Fundamentals");
+        if (c != null) {
+            saveCodingQuestion(c,
+                    "Given a Pandas DataFrame `df` with columns 'name', 'age', and 'salary', write code to select all rows where age is greater than 30 and return only the 'name' and 'salary' columns.",
+                    "import pandas as pd\n\n# df is already defined\nresult = ___  # Your code here",
+                    "python",
+                    "df.loc[df['age'] > 30, ['name', 'salary']]",
+                    DifficultyLevel.BEGINNER,
+                    "Use .loc[] with a boolean condition for row filtering and a list of column names for column selection: df.loc[df['age'] > 30, ['name', 'salary']]");
+            count++;
+        }
+
+        c = byCTitle.get("The Perceptron Model");
+        if (c != null) {
+            saveCodingQuestion(c,
+                    "Implement a simple perceptron prediction function that takes weights, inputs, and a bias, then returns 1 if the weighted sum plus bias is >= 0, else 0.",
+                    "def predict(weights, inputs, bias):\n    # Your code here\n    pass",
+                    "python",
+                    "1 if sum(w * x for w, x in zip(weights, inputs)) + bias >= 0 else 0",
+                    DifficultyLevel.MEDIUM,
+                    "A perceptron computes the weighted sum of inputs, adds a bias, and applies a step function: output = 1 if Σ(w·x) + b >= 0, else 0.");
+            count++;
+        }
+
+        c = byCTitle.get("Next-Token Prediction");
+        if (c != null) {
+            saveCodingQuestion(c,
+                    "Write a Python function that applies temperature scaling to a list of logits and returns the softmax probabilities. Use only basic math (no numpy).",
+                    "import math\n\ndef temperature_softmax(logits, temperature=1.0):\n    # Your code here\n    pass",
+                    "python",
+                    "scaled = [l / temperature for l in logits]; exp_vals = [math.exp(s) for s in scaled]; total = sum(exp_vals); return [e / total for e in exp_vals]",
+                    DifficultyLevel.HARD,
+                    "Temperature scaling divides each logit by T before applying softmax. Lower T → more deterministic, higher T → more uniform distribution. softmax(x_i) = exp(x_i/T) / Σexp(x_j/T).");
+            count++;
+        }
+
+        // ── SCENARIO-BASED questions ──
+        c = byCTitle.get("Types of Machine Learning");
+        if (c != null) {
+            saveScenarioQuestion(c,
+                    "Which type of machine learning should the team use?",
+                    "A retail company has 5 years of transaction data with no labels or categories. They want to discover natural customer segments to personalize marketing campaigns. The team has no pre-defined groups in mind.",
+                    List.of("Supervised Learning with classification", "Unsupervised Learning with clustering", "Reinforcement Learning", "Supervised Learning with regression"),
+                    "Unsupervised Learning with clustering",
+                    DifficultyLevel.MEDIUM,
+                    "Since there are no pre-defined labels or categories, unsupervised clustering is ideal — it discovers natural groupings in the data without requiring labeled examples.");
+            count++;
+        }
+
+        c = byCTitle.get("Activation Functions");
+        if (c != null) {
+            saveScenarioQuestion(c,
+                    "Which activation function should be used in the output layer?",
+                    "You are building a neural network for a medical diagnosis system that must classify X-ray images into exactly one of 5 disease categories. The network has 3 hidden layers using ReLU.",
+                    List.of("ReLU", "Sigmoid", "Softmax", "Tanh"),
+                    "Softmax",
+                    DifficultyLevel.MEDIUM,
+                    "For multi-class single-label classification (exactly one of 5 categories), Softmax is the correct output activation — it produces a probability distribution across all classes summing to 1.");
+            count++;
+        }
+
+        c = byCTitle.get("Chain-of-Thought Prompting");
+        if (c != null) {
+            saveScenarioQuestion(c,
+                    "Which prompting technique would be most effective?",
+                    "A developer is using an LLM to solve complex math word problems, but the model keeps giving wrong answers when asked directly. The developer has access to 3 solved examples from a textbook.",
+                    List.of("Zero-shot prompting", "Few-shot Chain-of-Thought prompting", "Increasing temperature to 1.5", "Using shorter prompts"),
+                    "Few-shot Chain-of-Thought prompting",
+                    DifficultyLevel.MEDIUM,
+                    "Few-shot CoT provides solved examples showing step-by-step reasoning, which teaches the model the reasoning pattern before it attempts the new problem — ideal for complex math.");
+            count++;
+        }
+
+        c = byCTitle.get("Self-Attention and Query-Key-Value");
+        if (c != null) {
+            saveScenarioQuestion(c,
+                    "What is causing this behavior in the attention mechanism?",
+                    "A researcher notices that in their transformer model, the word 'it' in the sentence 'The cat sat on the mat because it was tired' is attending most strongly to 'cat' rather than 'mat'. The model correctly identifies that 'it' refers to the cat.",
+                    List.of("The Query of 'it' has high dot-product similarity with the Key of 'cat'",
+                            "The model is using positional encoding to select the nearest noun",
+                            "The Value vector of 'cat' is the largest",
+                            "The model randomly attends to nouns"),
+                    "The Query of 'it' has high dot-product similarity with the Key of 'cat'",
+                    DifficultyLevel.HARD,
+                    "Self-attention computes dot products between Query and Key vectors. When 'it' refers to 'cat', the Query of 'it' will have learned to produce high similarity with the Key of 'cat', creating a strong attention weight.");
+            count++;
+        }
+
         return ResponseEntity.ok(Map.of("message", "Questions seeded successfully", "count", count));
     }
 
@@ -587,6 +719,60 @@ public class SeedController {
         Question question = Question.builder()
                 .concept(concept)
                 .type(QuestionType.MCQ)
+                .questionText(questionText)
+                .metadata(metadata)
+                .correctAnswer(correctAnswer)
+                .difficulty(difficulty)
+                .explanation(explanation)
+                .aiGenerated(false)
+                .build();
+        questionRepository.save(question);
+    }
+
+    private void saveCodingQuestion(Concept concept, String questionText, String starterCode,
+                                     String language, String correctAnswer, DifficultyLevel difficulty, String explanation) {
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("starterCode", starterCode);
+        metadata.put("language", language);
+        Question question = Question.builder()
+                .concept(concept)
+                .type(QuestionType.CODING)
+                .questionText(questionText)
+                .metadata(metadata)
+                .correctAnswer(correctAnswer)
+                .difficulty(difficulty)
+                .explanation(explanation)
+                .aiGenerated(false)
+                .build();
+        questionRepository.save(question);
+    }
+
+    private void saveSubjectiveQuestion(Concept concept, String questionText, String correctAnswer,
+                                         DifficultyLevel difficulty, String explanation) {
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("answerFormat", "text");
+        Question question = Question.builder()
+                .concept(concept)
+                .type(QuestionType.SUBJECTIVE)
+                .questionText(questionText)
+                .metadata(metadata)
+                .correctAnswer(correctAnswer)
+                .difficulty(difficulty)
+                .explanation(explanation)
+                .aiGenerated(false)
+                .build();
+        questionRepository.save(question);
+    }
+
+    private void saveScenarioQuestion(Concept concept, String questionText, String scenario,
+                                       List<String> options, String correctAnswer,
+                                       DifficultyLevel difficulty, String explanation) {
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("scenario", scenario);
+        metadata.put("options", options);
+        Question question = Question.builder()
+                .concept(concept)
+                .type(QuestionType.SCENARIO_BASED)
                 .questionText(questionText)
                 .metadata(metadata)
                 .correctAnswer(correctAnswer)

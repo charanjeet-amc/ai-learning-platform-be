@@ -5,6 +5,7 @@ import com.ailearning.platform.dto.response.AnswerResultResponse;
 import com.ailearning.platform.dto.response.QuestionResponse;
 import com.ailearning.platform.entity.*;
 import com.ailearning.platform.entity.enums.ConceptStatus;
+import com.ailearning.platform.entity.enums.QuestionType;
 import com.ailearning.platform.exception.ResourceNotFoundException;
 import com.ailearning.platform.repository.*;
 import com.ailearning.platform.ai.MasteryCalculator;
@@ -201,7 +202,30 @@ public class AssessmentServiceImpl implements AssessmentService {
             return false;
         }
 
-        return correctAnswer.equalsIgnoreCase(userAnswer.toString());
+        String userStr = userAnswer.toString().trim().toLowerCase();
+        String correctStr = correctAnswer.trim().toLowerCase();
+
+        // Exact match (works for MCQ and scenario-based)
+        if (correctStr.equalsIgnoreCase(userStr)) {
+            return true;
+        }
+
+        // For SUBJECTIVE and CODING: keyword-based matching
+        if (question.getType() == QuestionType.SUBJECTIVE || question.getType() == QuestionType.CODING) {
+            // Split correct answer into key phrases and check if user answer contains most of them
+            String[] keywords = correctStr.split("\\s+");
+            long matched = 0;
+            for (String kw : keywords) {
+                if (kw.length() >= 3 && userStr.contains(kw)) {
+                    matched++;
+                }
+            }
+            long significant = java.util.Arrays.stream(keywords).filter(k -> k.length() >= 3).count();
+            // Accept if at least 60% of significant keywords are present
+            return significant > 0 && (double) matched / significant >= 0.6;
+        }
+
+        return false;
     }
 
     private QuestionResponse mapToResponse(Question question) {
