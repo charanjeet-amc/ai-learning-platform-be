@@ -246,3 +246,51 @@ User → InstructorApplication (OneToOne)
 - Stripe payment flow
 - Pinecone/RAG vector search for AI tutor context
 - WebSocket for AI tutor streaming (currently HTTP POST; notification handlers exist)
+
+---
+
+## Shared Context (Cross-Repo — also in ai-learning-platform-ui/CLAUDE.md)
+
+This section is duplicated in both repos to keep BE and FE aligned.
+
+### API Contract Alignment
+- Backend base URL: `https://ai-learning-platform-be-production.up.railway.app`
+- All endpoints prefixed with `/api/`
+- Auth: JWT Bearer token in `Authorization` header, self-issued HMAC-SHA256, 24hr expiry
+- Public endpoints: `/api/public/**` and `GET /api/courses/**`
+- Frontend attaches JWT via RTK Query `prepareHeaders` reading from Redux `state.auth.token`
+
+### Critical Field Mappings (BE ↔ FE)
+| Backend (Entity/DTO) | Frontend | Pitfall |
+|---|---|---|
+| `AITutorRequest.query` | `request.query` | FE must send `query`, NOT `message` |
+| `AITutorResponse.message` | `response.message` | FE reads `message`, NOT `response` |
+| `LearningUnit.type` → DTO `contentType` | `learningUnit.contentType` | Entity field differs from DTO |
+| `Course.estimatedDurationMinutes` | `estimatedDurationMinutes` | Never use hours |
+| `Course.createdBy.displayName` → DTO `createdByName` | `createdByName` | Not `instructorName` |
+| `Course.industryVertical` | `industryVertical` | Used as "category" in FE display |
+| `AnswerResultResponse.score` | `result.score` | 0.0-1.0 for AI evaluation |
+| `AnswerResultResponse.feedback` | `result.feedback` | AI detailed feedback string |
+
+### Shared Enums
+- **QuestionType**: `MCQ`, `CODING`, `SUBJECTIVE`, `SCENARIO_BASED`
+  - MCQ/SCENARIO_BASED: exact case-insensitive match
+  - CODING/SUBJECTIVE: AI-evaluated (GPT-4o) with keyword fallback
+- **CourseStatus**: `DRAFT`, `PENDING_APPROVAL`, `PUBLISHED`, `CHANGES_REQUESTED`
+  - Flow: DRAFT → (publish) → PENDING_APPROVAL → (admin approve) → PUBLISHED
+  - Or: PENDING_APPROVAL → (admin reject) → CHANGES_REQUESTED → (re-publish) → PENDING_APPROVAL
+- **UserRole**: `STUDENT`, `PENDING_INSTRUCTOR`, `INSTRUCTOR`, `ADMIN`, `ENTERPRISE_ADMIN`
+  - Registration creates STUDENT or PENDING_INSTRUCTOR
+  - Admin approval upgrades PENDING_INSTRUCTOR → INSTRUCTOR
+
+### Cross-Cutting Decisions
+1. **Auth flow**: Self-issued JWT (no OAuth provider). FE stores token + user in localStorage via Redux authSlice. BE validates via JwtAuthenticationFilter.
+2. **AI Tutor during quiz**: FE hides AITutorPanel when quiz is active — prevents cheating. Re-shown after answer submission.
+3. **AI evaluation**: BE calls OpenAI GPT-4o for SUBJECTIVE/CODING answers. Returns `score` (0-1) and `feedback` string. FE shows color-coded score badge (green ≥0.7, yellow ≥0.4, red <0.4) + feedback text.
+4. **Gamification**: XP awarded server-side only. 10 XP on enrollment, variable XP on correct answers. FE reads XP/badges/rank from dashboard endpoint.
+5. **Course tree**: BE returns full tree via `/api/courses/{id}/tree` (modules→topics→concepts→learningUnits). FE renders as collapsible sidebar in CoursePlayerPage.
+6. **Seed data**: Idempotent seed endpoints for demo courses and extra questions. Safe to call multiple times.
+
+### Documentation
+- BE: `docs/api-contracts.md`, `docs/conventions.md`, `docs/progress.md`
+- FE: `docs/components.md`, `docs/conventions.md`, `docs/progress.md`
