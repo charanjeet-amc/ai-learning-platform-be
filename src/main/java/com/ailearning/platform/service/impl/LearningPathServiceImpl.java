@@ -8,6 +8,7 @@ import com.ailearning.platform.entity.Course;
 import com.ailearning.platform.entity.UserConceptProgress;
 import com.ailearning.platform.entity.enums.ConceptStatus;
 import com.ailearning.platform.exception.ResourceNotFoundException;
+import com.ailearning.platform.repository.ConceptRepository;
 import com.ailearning.platform.repository.CourseRepository;
 import com.ailearning.platform.repository.UserConceptProgressRepository;
 import com.ailearning.platform.service.LearningPathService;
@@ -24,19 +25,17 @@ import java.util.stream.Collectors;
 public class LearningPathServiceImpl implements LearningPathService {
 
     private final CourseRepository courseRepository;
+    private final ConceptRepository conceptRepository;
     private final UserConceptProgressRepository progressRepository;
     private final LearningPathEngine learningPathEngine;
 
     @Override
     public LearningPathResponse getPersonalizedPath(UUID courseId, UUID userId) {
-        Course course = courseRepository.findByIdWithFullTree(courseId)
+        Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course", "id", courseId));
 
-        // Collect all concepts in the course
-        List<Concept> allConcepts = course.getModules().stream()
-                .flatMap(m -> m.getTopics().stream())
-                .flatMap(t -> t.getConcepts().stream())
-                .collect(Collectors.toList());
+        // Fetch all concepts directly to avoid lazy loading issues
+        List<Concept> allConcepts = conceptRepository.findAllByCourseId(courseId);
 
         // Get user progress
         Map<UUID, UserConceptProgress> progressMap = new HashMap<>();
@@ -101,14 +100,7 @@ public class LearningPathServiceImpl implements LearningPathService {
 
     @Override
     public UUID getNextConcept(UUID courseId, UUID userId) {
-        Course course = courseRepository.findByIdWithFullTree(courseId)
-                .orElseThrow(() -> new ResourceNotFoundException("Course", "id", courseId));
-
-        List<Concept> allConcepts = course.getModules().stream()
-                .flatMap(m -> m.getTopics().stream())
-                .flatMap(t -> t.getConcepts().stream())
-                .collect(Collectors.toList());
-
+        List<Concept> allConcepts = conceptRepository.findAllByCourseId(courseId);
         return learningPathEngine.getNextConcept(userId, allConcepts);
     }
 

@@ -32,6 +32,7 @@ public class CourseServiceImpl implements CourseService {
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
     private final ModuleRepository moduleRepository;
+    private final ConceptRepository conceptRepository;
     private final UserConceptProgressRepository progressRepository;
     private final EnrollmentRepository enrollmentRepository;
 
@@ -172,16 +173,13 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public CourseProgressResponse getCourseProgress(UUID courseId, UUID userId) {
-        Course course = courseRepository.findByIdWithFullTree(courseId)
+        Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course", "id", courseId));
 
         List<UserConceptProgress> progressList =
                 progressRepository.findByUserIdAndCourseId(userId, courseId);
 
-        long totalConcepts = course.getModules().stream()
-                .flatMap(m -> m.getTopics().stream())
-                .flatMap(t -> t.getConcepts().stream())
-                .count();
+        long totalConcepts = conceptRepository.countByCourseId(courseId);
 
         long mastered = progressList.stream()
                 .filter(p -> p.getStatus() == ConceptStatus.MASTERED)
