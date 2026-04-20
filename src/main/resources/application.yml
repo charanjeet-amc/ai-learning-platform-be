@@ -73,11 +73,13 @@ stripe:
   api-key: ${STRIPE_API_KEY:}
   webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
 
-# Cloudinary
-cloudinary:
-  cloud-name: ${CLOUDINARY_CLOUD_NAME:}
-  api-key: ${CLOUDINARY_API_KEY:}
-  api-secret: ${CLOUDINARY_API_SECRET:}
+# AWS S3
+aws:
+  s3:
+    bucket-name: ${AWS_S3_BUCKET_NAME:amcdevresource}
+    region: ${AWS_S3_REGION:ap-south-1}
+    access-key: ${AWS_ACCESS_KEY_ID:}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:}
 
 # CORS
 cors:

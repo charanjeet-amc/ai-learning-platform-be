@@ -13,7 +13,7 @@ import com.ailearning.platform.entity.enums.DifficultyLevel;
 import com.ailearning.platform.entity.enums.UserRole;
 import com.ailearning.platform.exception.ResourceNotFoundException;
 import com.ailearning.platform.repository.*;
-import com.ailearning.platform.service.CloudinaryService;
+import com.ailearning.platform.service.S3StorageService;
 import com.ailearning.platform.service.CourseImportService;
 import com.ailearning.platform.service.CourseService;
 import jakarta.validation.Valid;
@@ -39,7 +39,7 @@ public class InstructorController {
 
     private final CourseService courseService;
     private final CourseImportService courseImportService;
-    private final CloudinaryService cloudinaryService;
+    private final S3StorageService s3StorageService;
     private final CourseRepository courseRepository;
     private final ModuleRepository moduleRepository;
     private final TopicRepository topicRepository;
@@ -195,7 +195,7 @@ public class InstructorController {
             @AuthenticationPrincipal Jwt jwt) throws IOException {
         UUID userId = extractUserId(jwt);
         ensureInstructor(userId);
-        String url = cloudinaryService.uploadFile(file, folder);
+        String url = s3StorageService.uploadFile(file, folder);
         return ResponseEntity.ok(Map.of("url", url));
     }
 

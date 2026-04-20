@@ -17,14 +17,14 @@ import java.util.regex.Pattern;
 
 /**
  * Parses PDF and DOCX files into structured Markdown content,
- * uploading inline images to Cloudinary.
+ * uploading inline images to S3.
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class DocumentParserService {
 
-    private final CloudinaryService cloudinaryService;
+    private final S3StorageService s3StorageService;
 
     /**
      * Result of parsing a document — Markdown text plus extracted structure hints.
@@ -150,7 +150,7 @@ public class DocumentParserService {
                     XWPFPictureData picData = pic.getPictureData();
                     String ext = picData.suggestFileExtension();
                     String imgName = courseSlug + "-img-" + imageCounter + "." + ext;
-                    String url = cloudinaryService.uploadBytes(
+                    String url = s3StorageService.uploadBytes(
                             picData.getData(), "courses/" + courseSlug, imgName);
                     md.append("![").append(pic.getDescription() != null ? pic.getDescription() : "image")
                       .append("](").append(url).append(")");
