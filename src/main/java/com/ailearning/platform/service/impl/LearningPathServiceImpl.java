@@ -13,6 +13,7 @@ import com.ailearning.platform.repository.CourseRepository;
 import com.ailearning.platform.repository.UserConceptProgressRepository;
 import com.ailearning.platform.service.LearningPathService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @Transactional(readOnly = true)
 public class LearningPathServiceImpl implements LearningPathService {
 
@@ -36,6 +38,8 @@ public class LearningPathServiceImpl implements LearningPathService {
 
         // Fetch all concepts directly to avoid lazy loading issues
         List<Concept> allConcepts = conceptRepository.findAllByCourseId(courseId);
+        log.info("Learning path: found {} concepts for course {}", allConcepts.size(), courseId);
+        allConcepts.forEach(c -> log.info("  concept: {} ({})", c.getTitle(), c.getId()));
 
         // Get user progress
         Map<UUID, UserConceptProgress> progressMap = new HashMap<>();
@@ -46,6 +50,15 @@ public class LearningPathServiceImpl implements LearningPathService {
 
         // Generate personalized order
         List<UUID> orderedIds = learningPathEngine.generatePath(userId, allConcepts);
+        log.info("Learning path order for user {}: {}", userId,
+                orderedIds.stream().map(id -> {
+                    Concept c = allConcepts.stream().filter(x -> x.getId().equals(id)).findFirst().orElse(null);
+                    UserConceptProgress p = progressMap.get(id);
+                    return String.format("%s (mastery=%.2f, status=%s)",
+                            c != null ? c.getTitle() : id,
+                            p != null && p.getMasteryLevel() != null ? p.getMasteryLevel() : 0.0,
+                            p != null ? p.getStatus() : "NO_PROGRESS");
+                }).collect(Collectors.joining(" -> ")));
 
         // Build concept lookup
         Map<UUID, Concept> conceptMap = allConcepts.stream()
