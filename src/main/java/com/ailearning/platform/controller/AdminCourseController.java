@@ -120,6 +120,7 @@ public class AdminCourseController {
                 .published(course.getPublished())
                 .status(course.getStatus() != null ? course.getStatus().name() : "DRAFT")
                 .adminFeedback(course.getAdminFeedback())
+                .instructorNotes(course.getInstructorNotes())
                 .rating(course.getRating())
                 .enrollmentCount(course.getEnrollmentCount())
                 .price(course.getPrice())

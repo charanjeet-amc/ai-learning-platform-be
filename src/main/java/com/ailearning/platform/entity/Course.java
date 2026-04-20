@@ -78,6 +78,9 @@ public class Course {
     @Column(columnDefinition = "TEXT")
     private String adminFeedback;
 
+    @Column(columnDefinition = "TEXT")
+    private String instructorNotes;
+
     @Builder.Default
     private Double rating = 0.0;
 

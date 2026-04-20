@@ -103,6 +103,7 @@ public class InstructorController {
     @Transactional
     public ResponseEntity<Void> submitForApproval(
             @PathVariable UUID courseId,
+            @RequestBody(required = false) Map<String, String> body,
             @AuthenticationPrincipal Jwt jwt) {
         UUID userId = extractUserId(jwt);
         ensureInstructor(userId);
@@ -113,6 +114,9 @@ public class InstructorController {
         }
         course.setStatus(CourseStatus.PENDING_APPROVAL);
         course.setAdminFeedback(null);
+        if (body != null && body.containsKey("instructorNotes")) {
+            course.setInstructorNotes(body.get("instructorNotes"));
+        }
         courseRepository.save(course);
         return ResponseEntity.ok().build();
     }
@@ -493,6 +497,7 @@ public class InstructorController {
                 .published(course.getPublished())
                 .status(course.getStatus() != null ? course.getStatus().name() : "DRAFT")
                 .adminFeedback(course.getAdminFeedback())
+                .instructorNotes(course.getInstructorNotes())
                 .rating(course.getRating())
                 .enrollmentCount(course.getEnrollmentCount())
                 .price(course.getPrice())

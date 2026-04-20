@@ -26,6 +26,7 @@ public class CourseResponse {
     private Boolean published;
     private String status;
     private String adminFeedback;
+    private String instructorNotes;
     private Double rating;
     private Long enrollmentCount;
     private Double price;
