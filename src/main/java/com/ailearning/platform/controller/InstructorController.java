@@ -242,6 +242,7 @@ public class InstructorController {
         module.setTitle(request.getTitle());
         if (request.getDescription() != null) module.setDescription(request.getDescription());
         if (request.getOrderIndex() != null) module.setOrderIndex(request.getOrderIndex());
+        if (request.getLearningObjectives() != null) module.setLearningObjectives(request.getLearningObjectives());
         moduleRepository.save(module);
 
         return ResponseEntity.ok(Map.of(
@@ -309,6 +310,8 @@ public class InstructorController {
 
         topic.setTitle(request.getTitle());
         if (request.getOrderIndex() != null) topic.setOrderIndex(request.getOrderIndex());
+        if (request.getEstimatedTimeMinutes() != null) topic.setEstimatedTimeMinutes(request.getEstimatedTimeMinutes());
+        if (request.getTags() != null) topic.setTags(request.getTags());
         topicRepository.save(topic);
 
         return ResponseEntity.ok(Map.of(
