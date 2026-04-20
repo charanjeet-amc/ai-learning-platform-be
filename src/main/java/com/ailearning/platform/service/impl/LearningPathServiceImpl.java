@@ -48,32 +48,27 @@ public class LearningPathServiceImpl implements LearningPathService {
                     .ifPresent(p -> progressMap.put(c.getId(), p));
         }
 
-        // Generate personalized order
-        List<UUID> orderedIds = learningPathEngine.generatePath(userId, allConcepts);
-        log.info("Learning path order for user {}: {}", userId,
-                orderedIds.stream().map(id -> {
-                    Concept c = allConcepts.stream().filter(x -> x.getId().equals(id)).findFirst().orElse(null);
-                    UserConceptProgress p = progressMap.get(id);
-                    return String.format("%s (mastery=%.2f, status=%s)",
-                            c != null ? c.getTitle() : id,
-                            p != null && p.getMasteryLevel() != null ? p.getMasteryLevel() : 0.0,
-                            p != null ? p.getStatus() : "NO_PROGRESS");
-                }).collect(Collectors.joining(" -> ")));
-
-        // Build concept lookup
-        Map<UUID, Concept> conceptMap = allConcepts.stream()
-                .collect(Collectors.toMap(Concept::getId, c -> c));
-
-        // Build steps
-        List<LearningPathStepResponse> steps = new ArrayList<>();
-        int completedCount = 0;
-        UUID nextConceptId = null;
+        // Generate personalized order (excludes mastered) — used only for "next" recommendation
+        List<UUID> recommendedPath = learningPathEngine.generatePath(userId, allConcepts);
+        UUID nextConceptId = recommendedPath.isEmpty() ? null : recommendedPath.get(0);
         String nextConceptTitle = null;
 
-        for (int i = 0; i < orderedIds.size(); i++) {
-            UUID cid = orderedIds.get(i);
-            Concept concept = conceptMap.get(cid);
-            if (concept == null) continue;
+        if (nextConceptId != null) {
+            Concept next = allConcepts.stream()
+                    .filter(c -> c.getId().equals(nextConceptId)).findFirst().orElse(null);
+            nextConceptTitle = next != null ? next.getTitle() : null;
+        }
+
+        log.info("Learning path for user {}: next={}, recommended path size={}, total concepts={}",
+                userId, nextConceptTitle, recommendedPath.size(), allConcepts.size());
+
+        // Build steps from ALL concepts in natural order (module → topic → concept ordering)
+        List<LearningPathStepResponse> steps = new ArrayList<>();
+        int completedCount = 0;
+
+        for (int i = 0; i < allConcepts.size(); i++) {
+            Concept concept = allConcepts.get(i);
+            UUID cid = concept.getId();
 
             UserConceptProgress progress = progressMap.get(cid);
             ConceptStatus status = progress != null ? progress.getStatus() : ConceptStatus.LOCKED;
@@ -84,9 +79,6 @@ public class LearningPathServiceImpl implements LearningPathService {
 
             if (status == ConceptStatus.MASTERED) {
                 completedCount++;
-            } else if (nextConceptId == null) {
-                nextConceptId = cid;
-                nextConceptTitle = concept.getTitle();
             }
 
             steps.add(LearningPathStepResponse.builder()
