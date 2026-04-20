@@ -102,21 +102,6 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(buildAuthResponse(user, token, roles));
     }
 
-    @PostMapping("/api/auth/become-instructor")
-    public ResponseEntity<AuthResponse> becomeInstructor(@AuthenticationPrincipal Jwt jwt) {
-        UUID userId = UUID.fromString(jwt.getSubject());
-        User user = userRepository.findById(userId).orElse(null);
-        if (user == null) return ResponseEntity.notFound().build();
-
-        user.setRole(UserRole.INSTRUCTOR);
-        userRepository.save(user);
-
-        List<String> roles = List.of(user.getRole().name());
-        String token = jwtTokenProvider.generateToken(
-                user.getId(), user.getUsername(), user.getEmail(), user.getFullName(), roles);
-        return ResponseEntity.ok(buildAuthResponse(user, token, roles));
-    }
-
     private AuthResponse buildAuthResponse(User user, String token, List<String> roles) {
         return AuthResponse.builder()
                 .token(token)

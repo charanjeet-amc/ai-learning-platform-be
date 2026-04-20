@@ -35,6 +35,11 @@ public class EnrollmentServiceImpl implements EnrollmentService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+
+        if (user.getRole() == com.ailearning.platform.entity.enums.UserRole.INSTRUCTOR
+                || user.getRole() == com.ailearning.platform.entity.enums.UserRole.PENDING_INSTRUCTOR) {
+            throw new IllegalArgumentException("Instructors cannot enroll in courses");
+        }
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course", "id", courseId));
 
