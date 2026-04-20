@@ -172,7 +172,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public CourseProgressResponse getCourseProgress(UUID courseId, UUID userId) {
-        Course course = courseRepository.findById(courseId)
+        Course course = courseRepository.findByIdWithFullTree(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course", "id", courseId));
 
         List<UserConceptProgress> progressList =

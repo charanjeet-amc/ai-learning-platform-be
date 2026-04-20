@@ -29,7 +29,7 @@ public class LearningPathServiceImpl implements LearningPathService {
 
     @Override
     public LearningPathResponse getPersonalizedPath(UUID courseId, UUID userId) {
-        Course course = courseRepository.findById(courseId)
+        Course course = courseRepository.findByIdWithFullTree(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course", "id", courseId));
 
         // Collect all concepts in the course
@@ -101,7 +101,7 @@ public class LearningPathServiceImpl implements LearningPathService {
 
     @Override
     public UUID getNextConcept(UUID courseId, UUID userId) {
-        Course course = courseRepository.findById(courseId)
+        Course course = courseRepository.findByIdWithFullTree(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course", "id", courseId));
 
         List<Concept> allConcepts = course.getModules().stream()

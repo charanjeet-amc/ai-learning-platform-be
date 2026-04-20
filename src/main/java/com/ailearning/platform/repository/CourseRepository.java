@@ -12,10 +12,18 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface CourseRepository extends JpaRepository<Course, UUID>, JpaSpecificationExecutor<Course> {
+
+    @Query("SELECT DISTINCT c FROM Course c " +
+           "LEFT JOIN FETCH c.modules m " +
+           "LEFT JOIN FETCH m.topics t " +
+           "LEFT JOIN FETCH t.concepts " +
+           "WHERE c.id = :courseId")
+    Optional<Course> findByIdWithFullTree(@Param("courseId") UUID courseId);
 
     Page<Course> findByPublishedTrue(Pageable pageable);
 
