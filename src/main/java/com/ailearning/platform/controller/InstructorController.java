@@ -95,13 +95,7 @@ public class InstructorController {
         UUID userId = extractUserId(jwt);
         ensureInstructor(userId);
         Course course = getCourseOwnedBy(courseId, userId);
-        // If editing a published course, reset to draft (needs re-approval)
-        if (course.getStatus() == CourseStatus.PUBLISHED) {
-            course.setStatus(CourseStatus.DRAFT);
-            course.setPublished(false);
-            course.setAdminFeedback(null);
-            courseRepository.save(course);
-        }
+        resetToDraftIfPublished(course);
         return ResponseEntity.ok(courseService.updateCourse(courseId, request, userId));
     }
 
@@ -210,6 +204,7 @@ public class InstructorController {
         UUID userId = extractUserId(jwt);
         ensureInstructor(userId);
         Course course = getCourseOwnedBy(courseId, userId);
+        resetToDraftIfPublished(course);
 
         int nextOrder = course.getModules().size();
         Module module = Module.builder()
@@ -238,6 +233,7 @@ public class InstructorController {
         Module module = moduleRepository.findById(moduleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Module", "id", moduleId));
         ensureOwnership(module.getCourse(), userId);
+        resetToDraftIfPublished(module.getCourse());
 
         module.setTitle(request.getTitle());
         if (request.getDescription() != null) module.setDescription(request.getDescription());
@@ -259,6 +255,7 @@ public class InstructorController {
         Module module = moduleRepository.findById(moduleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Module", "id", moduleId));
         ensureOwnership(module.getCourse(), userId);
+        resetToDraftIfPublished(module.getCourse());
         moduleRepository.delete(module);
         return ResponseEntity.noContent().build();
     }
@@ -276,6 +273,7 @@ public class InstructorController {
         Module module = moduleRepository.findById(moduleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Module", "id", moduleId));
         ensureOwnership(module.getCourse(), userId);
+        resetToDraftIfPublished(module.getCourse());
 
         int nextOrder = module.getTopics().size();
         Topic topic = Topic.builder()
@@ -303,6 +301,7 @@ public class InstructorController {
         Topic topic = topicRepository.findById(topicId)
                 .orElseThrow(() -> new ResourceNotFoundException("Topic", "id", topicId));
         ensureOwnership(topic.getModule().getCourse(), userId);
+        resetToDraftIfPublished(topic.getModule().getCourse());
 
         topic.setTitle(request.getTitle());
         if (request.getOrderIndex() != null) topic.setOrderIndex(request.getOrderIndex());
@@ -323,6 +322,7 @@ public class InstructorController {
         Topic topic = topicRepository.findById(topicId)
                 .orElseThrow(() -> new ResourceNotFoundException("Topic", "id", topicId));
         ensureOwnership(topic.getModule().getCourse(), userId);
+        resetToDraftIfPublished(topic.getModule().getCourse());
         topicRepository.delete(topic);
         return ResponseEntity.noContent().build();
     }
@@ -383,6 +383,7 @@ public class InstructorController {
         Concept concept = conceptRepository.findById(conceptId)
                 .orElseThrow(() -> new ResourceNotFoundException("Concept", "id", conceptId));
         ensureOwnership(concept.getTopic().getModule().getCourse(), userId);
+        resetToDraftIfPublished(concept.getTopic().getModule().getCourse());
 
         concept.setTitle(request.getTitle());
         if (request.getDefinition() != null) concept.setDefinition(request.getDefinition());
@@ -422,6 +423,7 @@ public class InstructorController {
         Concept concept = conceptRepository.findById(conceptId)
                 .orElseThrow(() -> new ResourceNotFoundException("Concept", "id", conceptId));
         ensureOwnership(concept.getTopic().getModule().getCourse(), userId);
+        resetToDraftIfPublished(concept.getTopic().getModule().getCourse());
         conceptRepository.delete(concept);
         return ResponseEntity.noContent().build();
     }
@@ -455,6 +457,15 @@ public class InstructorController {
         if (course.getCreatedBy() == null || !course.getCreatedBy().getId().equals(userId)) {
             throw new org.springframework.security.access.AccessDeniedException(
                     "You don't have permission to modify this course");
+        }
+    }
+
+    private void resetToDraftIfPublished(Course course) {
+        if (course.getStatus() == CourseStatus.PUBLISHED) {
+            course.setStatus(CourseStatus.DRAFT);
+            course.setPublished(false);
+            course.setAdminFeedback(null);
+            courseRepository.save(course);
         }
     }
 
