@@ -3,6 +3,27 @@
 ## Product Vision
 Build the most advanced AI-powered learning platform that surpasses Coursera, Udemy, and DeepLearning.AI. AI-native adaptive learning — not video courses with AI bolted on.
 
+## Shared Context (Backend + Frontend)
+
+### API Contracts
+- Backend is the source of truth for endpoint paths and response shapes: `docs/api-contracts.md`.
+- UI must consume backend contract fields as-is (no alias drift), especially:
+  - AI tutor request: `query` (not `message`)
+  - AI tutor response: `message` (not `response`)
+  - Course tree/detail fields: `estimatedDurationMinutes`, `createdByName`, `contentType`
+- Contract changes must be versioned in `docs/api-contracts.md` and reflected in UI API slices and types in the same change set.
+
+### Cross-Cutting Decisions
+- Auth is self-issued JWT (HMAC-SHA256); JWT subject is user UUID and `roles` drive role-based access in both backend and UI route guards.
+- Knowledge graph ordering is canonical: `Course -> Module -> Topic -> Concept -> LearningUnit`; all adaptive decisions must respect concept dependency DAG.
+- Learning path response rules:
+  - `steps` should include all course concepts in natural graph order for stable progress rendering.
+  - `nextConceptId` is recommendation-focused and can exclude mastered concepts.
+- Single environment contract:
+  - UI reads `VITE_API_URL`.
+  - Backend CORS must allow active UI origins.
+- Any field rename or enum change is a breaking cross-layer decision and must update backend DTOs, frontend types, and docs together.
+
 ## Core Requirements
 1. **Knowledge Graph Architecture**: Courses → Modules → Topics → Concepts → LearningUnits. Concept dependencies form a DAG for optimal learning order.
 2. **AI Adaptive Learning**: Personalized paths per student. Concept mastery tracking (NOT completion-based). Adaptive difficulty. Spaced repetition. Statuses: NOT_STARTED → IN_PROGRESS → STRUGGLING / MASTERED / REVIEW_NEEDED.
