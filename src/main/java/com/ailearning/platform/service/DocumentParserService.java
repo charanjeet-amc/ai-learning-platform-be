@@ -2,7 +2,6 @@ package com.ailearning.platform.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.poi.xwpf.usermodel.*;
@@ -217,7 +216,7 @@ public class DocumentParserService {
     // ─── PDF Parsing ────────────────────────────────────────────
 
     private ParsedDocument parsePdf(MultipartFile file) throws IOException {
-        try (PDDocument doc = Loader.loadPDF(file.getBytes())) {
+        try (PDDocument doc = PDDocument.load(file.getBytes())) {
             PDFTextStripper stripper = new PDFTextStripper();
             String rawText = stripper.getText(doc);
 
