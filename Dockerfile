@@ -11,6 +11,9 @@ RUN mvn clean package -DskipTests -q
 FROM eclipse-temurin:21-jre-alpine AS runtime
 
 WORKDIR /app
+# DejaVu fonts required by OpenHTML-to-PDF for PDF certificate generation
+RUN apk add --no-cache fontconfig ttf-dejavu && fc-cache -fv
+
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 COPY --from=build /app/target/*.jar app.jar
 RUN chown appuser:appgroup app.jar

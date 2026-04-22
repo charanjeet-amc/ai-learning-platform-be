@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <style>
+    @page {
+      size: A4 landscape;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      width: 297mm;
+      height: 210mm;
+      background-color: #1e1b4b;
+      font-family: 'DejaVu Sans', Arial, Helvetica, sans-serif;
+      color: #ffffff;
+    }
+
+    /* ── Page shell ───────────────────────────────────────── */
+    .page {
+      width: 297mm;
+      height: 210mm;
+      position: relative;
+      background-color: #1e1b4b;
+      overflow: hidden;
+    }
+
+    /* ── Decorative corner accents ────────────────────────── */
+    .corner {
+      position: absolute;
+      width: 18mm;
+      height: 18mm;
+    }
+    .corner-tl { top: 6mm;  left: 6mm;
+      border-top: 2pt solid #d4af37; border-left: 2pt solid #d4af37; }
+    .corner-tr { top: 6mm;  right: 6mm;
+      border-top: 2pt solid #d4af37; border-right: 2pt solid #d4af37; }
+    .corner-bl { bottom: 6mm; left: 6mm;
+      border-bottom: 2pt solid #d4af37; border-left: 2pt solid #d4af37; }
+    .corner-br { bottom: 6mm; right: 6mm;
+      border-bottom: 2pt solid #d4af37; border-right: 2pt solid #d4af37; }
+
+    /* ── Outer & inner borders ────────────────────────────── */
+    .border-outer {
+      position: absolute;
+      top: 8mm; left: 8mm; right: 8mm; bottom: 8mm;
+      border: 1.5pt solid #d4af37;
+    }
+    .border-inner {
+      position: absolute;
+      top: 11mm; left: 11mm; right: 11mm; bottom: 11mm;
+      border: 0.5pt solid #b8972e;
+    }
+
+    /* ── Main content area ────────────────────────────────── */
+    .content {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      bottom: 28mm;
+      text-align: center;
+      padding-top: 16mm;
+    }
+
+    .platform-name {
+      font-size: 9pt;
+      font-weight: bold;
+      color: #d4af37;
+      letter-spacing: 4pt;
+      text-transform: uppercase;
+    }
+
+    .header-rule {
+      width: 55mm;
+      height: 0.6pt;
+      background-color: #d4af37;
+      margin: 3mm auto 4mm auto;
+    }
+
+    .cert-title {
+      font-size: 30pt;
+      font-weight: bold;
+      color: #ffffff;
+      letter-spacing: 1pt;
+    }
+
+    .presents-text {
+      font-size: 10pt;
+      color: #a5b4fc;
+      font-style: italic;
+      margin-top: 7mm;
+    }
+
+    .student-name {
+      font-size: 34pt;
+      font-weight: bold;
+      color: #d4af37;
+      margin-top: 4mm;
+      padding: 0 15mm;
+    }
+
+    .name-rule {
+      width: 100mm;
+      height: 0.6pt;
+      background-color: #d4af37;
+      margin: 2.5mm auto;
+    }
+
+    .completed-text {
+      font-size: 10pt;
+      color: #a5b4fc;
+      font-style: italic;
+      margin-top: 4mm;
+    }
+
+    .course-title {
+      font-size: 20pt;
+      font-weight: bold;
+      color: #ffffff;
+      margin-top: 3.5mm;
+      padding: 0 22mm;
+    }
+
+    .award-note {
+      font-size: 8.5pt;
+      color: #818cf8;
+      font-style: italic;
+      margin-top: 5mm;
+    }
+
+    /* ── Footer ───────────────────────────────────────────── */
+    .footer {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 28mm;
+      padding: 0 20mm;
+    }
+
+    .footer-rule {
+      height: 0.5pt;
+      background-color: #4338ca;
+      margin-bottom: 4mm;
+    }
+
+    .footer-cols {
+      display: block;
+    }
+
+    .footer-left {
+      float: left;
+      text-align: left;
+    }
+
+    .footer-right {
+      float: right;
+      text-align: right;
+    }
+
+    .footer-label {
+      font-size: 6.5pt;
+      color: #818cf8;
+      text-transform: uppercase;
+      letter-spacing: 1.5pt;
+    }
+
+    .footer-value {
+      font-size: 9.5pt;
+      color: #e0e7ff;
+      font-weight: bold;
+      margin-top: 1.5mm;
+    }
+
+    .footer-url {
+      font-size: 7pt;
+      color: #818cf8;
+      margin-top: 1mm;
+    }
+
+    .clearfix:after {
+      content: '';
+      display: table;
+      clear: both;
+    }
+
+    /* ── Seal circle ──────────────────────────────────────── */
+    .seal {
+      position: absolute;
+      bottom: 14mm;
+      left: 50%;
+      margin-left: -10mm;
+      width: 20mm;
+      height: 20mm;
+      border: 1.5pt solid #d4af37;
+      border-radius: 50%;
+      text-align: center;
+    }
+
+    .seal-inner {
+      font-size: 7pt;
+      font-weight: bold;
+      color: #d4af37;
+      letter-spacing: 0.5pt;
+      line-height: 20mm;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Corner accents -->
+  <div class="corner corner-tl"></div>
+  <div class="corner corner-tr"></div>
+  <div class="corner corner-bl"></div>
+  <div class="corner corner-br"></div>
+
+  <!-- Borders -->
+  <div class="border-outer"></div>
+  <div class="border-inner"></div>
+
+  <!-- Main content -->
+  <div class="content">
+    <div class="platform-name">AI Learning Platform</div>
+    <div class="header-rule"></div>
+
+    <div class="cert-title">Certificate of Completion</div>
+
+    <div class="presents-text">This certifies that</div>
+
+    <div class="student-name" th:text="${studentName}">Student Name</div>
+    <div class="name-rule"></div>
+
+    <div class="completed-text">has successfully completed the course</div>
+
+    <div class="course-title" th:text="${courseTitle}">Course Title</div>
+
+    <div class="award-note">Awarded for excellence in learning and dedication to mastery</div>
+  </div>
+
+  <!-- Seal -->
+  <div class="seal">
+    <div class="seal-inner">VERIFIED</div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-rule"></div>
+    <div class="footer-cols clearfix">
+      <div class="footer-left">
+        <div class="footer-label">Date of Issue</div>
+        <div class="footer-value" th:text="${issuedDate}">January 1, 2026</div>
+      </div>
+      <div class="footer-right">
+        <div class="footer-label">Certificate ID</div>
+        <div class="footer-value" th:text="${verificationCode}">xxxxxxxx-xxxx-xxxx</div>
+        <div class="footer-url" th:text="${verificationUrl}">https://example.com/certificates/...</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
