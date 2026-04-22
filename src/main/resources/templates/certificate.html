@@ -31,106 +31,115 @@
       overflow: hidden;
     }
 
-    /* ── Decorative corner accents ────────────────────────── */
-    .corner {
-      position: absolute;
-      width: 18mm;
-      height: 18mm;
-    }
-    .corner-tl { top: 6mm;  left: 6mm;
-      border-top: 2pt solid #d4af37; border-left: 2pt solid #d4af37; }
-    .corner-tr { top: 6mm;  right: 6mm;
-      border-top: 2pt solid #d4af37; border-right: 2pt solid #d4af37; }
-    .corner-bl { bottom: 6mm; left: 6mm;
-      border-bottom: 2pt solid #d4af37; border-left: 2pt solid #d4af37; }
-    .corner-br { bottom: 6mm; right: 6mm;
-      border-bottom: 2pt solid #d4af37; border-right: 2pt solid #d4af37; }
-
-    /* ── Outer and inner borders ─────────────────────────── */
+    /* ── Outer border ─────────────────────────────────────── */
     .border-outer {
       position: absolute;
       top: 8mm; left: 8mm; right: 8mm; bottom: 8mm;
-      border: 1.5pt solid #d4af37;
+      border: 2pt solid #d4af37;
     }
+
+    /* ── Inner accent border ──────────────────────────────── */
     .border-inner {
       position: absolute;
       top: 11mm; left: 11mm; right: 11mm; bottom: 11mm;
-      border: 0.5pt solid #b8972e;
+      border: 0.5pt solid #7c6f2e;
     }
 
-    /* ── Main content area ────────────────────────────────── */
+    /* ── Corner accents ───────────────────────────────────── */
+    .corner {
+      position: absolute;
+      width: 6mm;
+      height: 6mm;
+    }
+    .corner-tl { top: 13mm; left: 13mm;
+      border-top: 1.5pt solid #d4af37; border-left: 1.5pt solid #d4af37; }
+    .corner-tr { top: 13mm; right: 13mm;
+      border-top: 1.5pt solid #d4af37; border-right: 1.5pt solid #d4af37; }
+    .corner-bl { bottom: 13mm; left: 13mm;
+      border-bottom: 1.5pt solid #d4af37; border-left: 1.5pt solid #d4af37; }
+    .corner-br { bottom: 13mm; right: 13mm;
+      border-bottom: 1.5pt solid #d4af37; border-right: 1.5pt solid #d4af37; }
+
+    /* ── Main content ─────────────────────────────────────── */
     .content {
       position: absolute;
       top: 0; left: 0; right: 0;
       bottom: 28mm;
       text-align: center;
-      padding-top: 16mm;
+      padding-top: 14mm;
     }
 
     .platform-name {
-      font-size: 9pt;
+      font-size: 8pt;
       font-weight: bold;
       color: #d4af37;
-      letter-spacing: 4pt;
+      letter-spacing: 5pt;
       text-transform: uppercase;
     }
 
     .header-rule {
-      width: 55mm;
-      height: 0.6pt;
+      width: 50mm;
+      height: 0.5pt;
       background-color: #d4af37;
       margin: 3mm auto 4mm auto;
     }
 
+    .award-icon {
+      font-size: 22pt;
+      color: #d4af37;
+      margin-bottom: 1mm;
+    }
+
     .cert-title {
-      font-size: 30pt;
+      font-size: 28pt;
       font-weight: bold;
       color: #ffffff;
-      letter-spacing: 1pt;
+      letter-spacing: 0.5pt;
+      margin-top: 1mm;
     }
 
     .presents-text {
-      font-size: 10pt;
+      font-size: 9.5pt;
       color: #a5b4fc;
       font-style: italic;
-      margin-top: 7mm;
+      margin-top: 6mm;
     }
 
     .student-name {
-      font-size: 34pt;
+      font-size: 32pt;
       font-weight: bold;
       color: #d4af37;
-      margin-top: 4mm;
+      margin-top: 3mm;
       padding: 0 15mm;
     }
 
     .name-rule {
-      width: 100mm;
-      height: 0.6pt;
+      width: 90mm;
+      height: 0.5pt;
       background-color: #d4af37;
-      margin: 2.5mm auto;
+      margin: 2mm auto;
     }
 
     .completed-text {
-      font-size: 10pt;
+      font-size: 9.5pt;
       color: #a5b4fc;
       font-style: italic;
-      margin-top: 4mm;
+      margin-top: 3mm;
     }
 
     .course-title {
-      font-size: 20pt;
+      font-size: 19pt;
       font-weight: bold;
       color: #ffffff;
-      margin-top: 3.5mm;
+      margin-top: 2.5mm;
       padding: 0 22mm;
     }
 
     .award-note {
-      font-size: 8.5pt;
-      color: #818cf8;
+      font-size: 8pt;
+      color: #7c85d4;
       font-style: italic;
-      margin-top: 5mm;
+      margin-top: 4mm;
     }
 
     /* ── Footer ───────────────────────────────────────────── */
@@ -138,79 +147,81 @@
       position: absolute;
       bottom: 0; left: 0; right: 0;
       height: 28mm;
-      padding: 0 20mm;
     }
 
     .footer-rule {
-      height: 0.5pt;
-      background-color: #4338ca;
-      margin-bottom: 4mm;
-    }
-
-    .footer-cols {
-      display: block;
+      height: 0.4pt;
+      background-color: #312e81;
+      margin: 0 20mm 4mm 20mm;
     }
 
     .footer-left {
-      float: left;
+      position: absolute;
+      left: 20mm;
+      bottom: 9mm;
       text-align: left;
     }
 
     .footer-right {
-      float: right;
+      position: absolute;
+      right: 20mm;
+      bottom: 9mm;
       text-align: right;
     }
 
+    .footer-center {
+      position: absolute;
+      left: 50%;
+      bottom: 6mm;
+      margin-left: -10mm;
+      width: 20mm;
+      text-align: center;
+    }
+
     .footer-label {
-      font-size: 6.5pt;
+      font-size: 6pt;
       color: #818cf8;
       text-transform: uppercase;
-      letter-spacing: 1.5pt;
+      letter-spacing: 1pt;
     }
 
     .footer-value {
-      font-size: 9.5pt;
+      font-size: 9pt;
       color: #e0e7ff;
       font-weight: bold;
-      margin-top: 1.5mm;
-    }
-
-    .footer-url {
-      font-size: 7pt;
-      color: #818cf8;
       margin-top: 1mm;
     }
 
-    .clearfix:after {
-      content: '';
-      display: table;
-      clear: both;
+    .footer-url {
+      font-size: 6.5pt;
+      color: #6366f1;
+      margin-top: 0.8mm;
     }
 
-    /* ── Seal circle ──────────────────────────────────────── */
+    /* ── Verified seal ────────────────────────────────────── */
     .seal {
-      position: absolute;
-      bottom: 14mm;
-      left: 50%;
-      margin-left: -10mm;
-      width: 20mm;
-      height: 20mm;
+      width: 18mm;
+      height: 18mm;
       border: 1.5pt solid #d4af37;
       border-radius: 50%;
       text-align: center;
     }
 
     .seal-inner {
-      font-size: 7pt;
+      font-size: 6.5pt;
       font-weight: bold;
       color: #d4af37;
       letter-spacing: 0.5pt;
-      line-height: 20mm;
+      line-height: 18mm;
     }
   </style>
 </head>
 <body>
 <div class="page">
+
+  <!-- Borders -->
+  <div class="border-outer"></div>
+  <div class="border-inner"></div>
 
   <!-- Corner accents -->
   <div class="corner corner-tl"></div>
@@ -218,14 +229,12 @@
   <div class="corner corner-bl"></div>
   <div class="corner corner-br"></div>
 
-  <!-- Borders -->
-  <div class="border-outer"></div>
-  <div class="border-inner"></div>
-
   <!-- Main content -->
   <div class="content">
     <div class="platform-name">AI Learning Platform</div>
     <div class="header-rule"></div>
+
+    <div class="award-icon">&#9733;</div>
 
     <div class="cert-title">Certificate of Completion</div>
 
@@ -234,31 +243,32 @@
     <div class="student-name" th:text="${studentName}">Student Name</div>
     <div class="name-rule"></div>
 
-    <div class="completed-text">has successfully completed the course</div>
+    <div class="completed-text">has successfully completed</div>
 
     <div class="course-title" th:text="${courseTitle}">Course Title</div>
 
     <div class="award-note">Awarded for excellence in learning and dedication to mastery</div>
   </div>
 
-  <!-- Seal -->
-  <div class="seal">
-    <div class="seal-inner">VERIFIED</div>
-  </div>
-
   <!-- Footer -->
   <div class="footer">
     <div class="footer-rule"></div>
-    <div class="footer-cols clearfix">
-      <div class="footer-left">
-        <div class="footer-label">Date of Issue</div>
-        <div class="footer-value" th:text="${issuedDate}">January 1, 2026</div>
+
+    <div class="footer-left">
+      <div class="footer-label">Date of Issue</div>
+      <div class="footer-value" th:text="${issuedDate}">January 1, 2026</div>
+    </div>
+
+    <div class="footer-center">
+      <div class="seal">
+        <div class="seal-inner">VERIFIED</div>
       </div>
-      <div class="footer-right">
-        <div class="footer-label">Certificate ID</div>
-        <div class="footer-value" th:text="${verificationCode}">xxxxxxxx-xxxx-xxxx</div>
-        <div class="footer-url" th:text="${verificationUrl}">https://example.com/certificates/...</div>
-      </div>
+    </div>
+
+    <div class="footer-right">
+      <div class="footer-label">Certificate ID</div>
+      <div class="footer-value" th:text="${verificationCode}">xxxxxxxx-xxxx</div>
+      <div class="footer-url" th:text="${verificationUrl}">https://example.com/certificates/...</div>
     </div>
   </div>
 
