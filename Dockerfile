@@ -1,6 +1,7 @@
 # Backend Dockerfile — multi-stage build for Railway / container deployments
 FROM maven:3.9-eclipse-temurin-21-alpine AS build
 
+ARG CACHE_BUST=1
 WORKDIR /app
 COPY pom.xml .
 RUN mvn dependency:go-offline -q
