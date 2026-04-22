@@ -126,8 +126,9 @@ public class CertificateServiceImpl implements CertificateService {
         Context ctx = new Context();
         ctx.setVariable("studentName", cert.getUser().getFullName());
         ctx.setVariable("courseTitle", cert.getCourse().getTitle());
+        LocalDateTime completionDate = cert.getCompletedAt() != null ? cert.getCompletedAt() : cert.getIssuedAt();
         ctx.setVariable("issuedDate",
-                cert.getIssuedAt().format(DateTimeFormatter.ofPattern("MMMM d, yyyy")));
+                completionDate.format(DateTimeFormatter.ofPattern("MMMM d, yyyy")));
         ctx.setVariable("verificationCode", cert.getVerificationCode());
         ctx.setVariable("verificationUrl",
                 frontendUrl + "/certificates/" + cert.getVerificationCode());
@@ -138,7 +139,6 @@ public class CertificateServiceImpl implements CertificateService {
         // 3. Convert HTML → PDF via OpenHTML to PDF (HTML/CSS → PDFBox)
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             PdfRendererBuilder builder = new PdfRendererBuilder();
-            builder.useFastMode();
             builder.withHtmlContent(html, null);
             builder.toStream(baos);
             builder.run();
