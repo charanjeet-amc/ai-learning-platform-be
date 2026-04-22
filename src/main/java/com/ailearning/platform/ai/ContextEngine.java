@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -62,6 +63,7 @@ public class ContextEngine {
 
         List<AIInteraction> recentInteractions = interactionRepository
                 .findByUserIdAndConceptIdOrderByCreatedAtDesc(userId, conceptId, PageRequest.of(0, 5));
+        Collections.reverse(recentInteractions);
 
         String userLevel = determineUserLevel(progress);
 
