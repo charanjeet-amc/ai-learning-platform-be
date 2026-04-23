@@ -22,7 +22,6 @@
       color: #ffffff;
     }
 
-    /* ── Page shell ───────────────────────────────────────── */
     .page {
       width: 297mm;
       height: 210mm;
@@ -31,46 +30,52 @@
       overflow: hidden;
     }
 
-    /* ── Outer border ─────────────────────────────────────── */
+    /* ── Borders: use explicit width/height — right/bottom ignored by OpenHTML ── */
     .border-outer {
       position: absolute;
-      top: 8mm; left: 8mm; right: 8mm; bottom: 8mm;
+      top: 7mm; left: 7mm;
+      width: 283mm;
+      height: 196mm;
       border: 2pt solid #d4af37;
     }
 
-    /* ── Inner accent border ──────────────────────────────── */
     .border-inner {
       position: absolute;
-      top: 11mm; left: 11mm; right: 11mm; bottom: 11mm;
-      border: 0.5pt solid #7c6f2e;
+      top: 10mm; left: 10mm;
+      width: 277mm;
+      height: 190mm;
+      border: 0.5pt solid rgba(212,175,55,0.35);
     }
 
-    /* ── Corner accents ───────────────────────────────────── */
-    .corner {
-      position: absolute;
-      width: 6mm;
-      height: 6mm;
-    }
-    .corner-tl { top: 13mm; left: 13mm;
+    /* ── Corners: top/left only (no right/bottom) ── */
+    .corner { position: absolute; width: 6mm; height: 6mm; }
+    .corner-tl { top: 12mm; left: 12mm;
       border-top: 1.5pt solid #d4af37; border-left: 1.5pt solid #d4af37; }
-    .corner-tr { top: 13mm; right: 13mm;
+    .corner-tr { top: 12mm; left: 279mm;
       border-top: 1.5pt solid #d4af37; border-right: 1.5pt solid #d4af37; }
-    .corner-bl { bottom: 13mm; left: 13mm;
+    .corner-bl { top: 192mm; left: 12mm;
       border-bottom: 1.5pt solid #d4af37; border-left: 1.5pt solid #d4af37; }
-    .corner-br { bottom: 13mm; right: 13mm;
+    .corner-br { top: 192mm; left: 279mm;
       border-bottom: 1.5pt solid #d4af37; border-right: 1.5pt solid #d4af37; }
 
-    /* ── Main content ─────────────────────────────────────── */
-    .content {
+    /* ── Vertical centering via display:table ── */
+    .content-wrapper {
       position: absolute;
-      top: 0; left: 0; right: 0;
-      bottom: 28mm;
+      top: 0; left: 0;
+      width: 297mm;
+      height: 182mm;
+      display: table;
+    }
+
+    .content-cell {
+      display: table-cell;
+      vertical-align: middle;
       text-align: center;
-      padding-top: 14mm;
+      padding: 0 25mm;
     }
 
     .platform-name {
-      font-size: 8pt;
+      font-size: 7.5pt;
       font-weight: bold;
       color: #d4af37;
       letter-spacing: 5pt;
@@ -78,45 +83,73 @@
     }
 
     .header-rule {
-      width: 50mm;
+      width: 45mm;
       height: 0.5pt;
       background-color: #d4af37;
-      margin: 3mm auto 4mm auto;
+      margin: 3mm auto 5mm;
     }
 
-    .award-icon {
-      font-size: 22pt;
-      color: #d4af37;
-      margin-bottom: 1mm;
+    /* ── CSS-only award badge (circle + ribbon tails) ── */
+    .award-circle {
+      width: 13mm;
+      height: 13mm;
+      border: 2pt solid #d4af37;
+      border-radius: 50%;
+      margin: 0 auto;
+    }
+
+    .award-ribbon-left {
+      display: inline-block;
+      width: 0;
+      height: 0;
+      border-left: 3.5mm solid transparent;
+      border-right: 2mm solid #d4af37;
+      border-top: 5mm solid #d4af37;
+      margin-right: 0;
+      vertical-align: top;
+    }
+
+    .award-ribbon-right {
+      display: inline-block;
+      width: 0;
+      height: 0;
+      border-right: 3.5mm solid transparent;
+      border-left: 2mm solid #d4af37;
+      border-top: 5mm solid #d4af37;
+      vertical-align: top;
+    }
+
+    .award-ribbon-gap {
+      display: inline-block;
+      width: 2mm;
     }
 
     .cert-title {
-      font-size: 28pt;
+      font-size: 26pt;
       font-weight: bold;
       color: #ffffff;
       letter-spacing: 0.5pt;
-      margin-top: 1mm;
+      margin-top: 4mm;
     }
 
     .presents-text {
       font-size: 9.5pt;
       color: #a5b4fc;
       font-style: italic;
-      margin-top: 6mm;
+      margin-top: 5mm;
     }
 
     .student-name {
-      font-size: 32pt;
+      font-size: 30pt;
       font-weight: bold;
       color: #d4af37;
       margin-top: 3mm;
-      padding: 0 15mm;
     }
 
     .name-rule {
-      width: 90mm;
+      width: 80mm;
       height: 0.5pt;
-      background-color: #d4af37;
+      background-color: rgba(212,175,55,0.6);
       margin: 2mm auto;
     }
 
@@ -124,35 +157,35 @@
       font-size: 9.5pt;
       color: #a5b4fc;
       font-style: italic;
-      margin-top: 3mm;
+      margin-top: 2mm;
     }
 
     .course-title {
-      font-size: 19pt;
+      font-size: 18pt;
       font-weight: bold;
       color: #ffffff;
-      margin-top: 2.5mm;
-      padding: 0 22mm;
+      margin-top: 3mm;
     }
 
     .award-note {
-      font-size: 8pt;
-      color: #7c85d4;
+      font-size: 7.5pt;
+      color: #818cf8;
       font-style: italic;
       margin-top: 4mm;
     }
 
-    /* ── Footer ───────────────────────────────────────────── */
+    /* ── Footer ── */
     .footer {
       position: absolute;
-      bottom: 0; left: 0; right: 0;
+      bottom: 0; left: 0;
+      width: 297mm;
       height: 28mm;
     }
 
     .footer-rule {
       height: 0.4pt;
-      background-color: #312e81;
-      margin: 0 20mm 4mm 20mm;
+      background-color: rgba(255,255,255,0.08);
+      margin: 0 20mm 4mm;
     }
 
     .footer-left {
@@ -171,11 +204,8 @@
 
     .footer-center {
       position: absolute;
-      left: 50%;
-      bottom: 6mm;
-      margin-left: -10mm;
-      width: 20mm;
-      text-align: center;
+      left: 138.5mm;
+      bottom: 5mm;
     }
 
     .footer-label {
@@ -183,71 +213,80 @@
       color: #818cf8;
       text-transform: uppercase;
       letter-spacing: 1pt;
+      margin-bottom: 1mm;
     }
 
     .footer-value {
       font-size: 9pt;
       color: #e0e7ff;
       font-weight: bold;
-      margin-top: 1mm;
     }
 
     .footer-url {
-      font-size: 6.5pt;
+      font-size: 6pt;
       color: #6366f1;
-      margin-top: 0.8mm;
+      margin-top: 1mm;
     }
 
-    /* ── Verified seal ────────────────────────────────────── */
     .seal {
-      width: 18mm;
-      height: 18mm;
+      width: 16mm;
+      height: 16mm;
       border: 1.5pt solid #d4af37;
       border-radius: 50%;
       text-align: center;
     }
 
     .seal-inner {
-      font-size: 6.5pt;
+      font-size: 5.5pt;
       font-weight: bold;
       color: #d4af37;
       letter-spacing: 0.5pt;
-      line-height: 18mm;
+      line-height: 16mm;
     }
   </style>
 </head>
 <body>
 <div class="page">
 
-  <!-- Borders -->
+  <!-- Borders (explicit width/height) -->
   <div class="border-outer"></div>
   <div class="border-inner"></div>
 
-  <!-- Corner accents -->
+  <!-- Corners (top/left coordinates only) -->
   <div class="corner corner-tl"></div>
   <div class="corner corner-tr"></div>
   <div class="corner corner-bl"></div>
   <div class="corner corner-br"></div>
 
-  <!-- Main content -->
-  <div class="content">
-    <div class="platform-name">AI Learning Platform</div>
-    <div class="header-rule"></div>
+  <!-- Main content — vertically centred via display:table -->
+  <div class="content-wrapper">
+    <div class="content-cell">
 
-    <div class="award-icon">&#9733;</div>
+      <div class="platform-name">AI Learning Platform</div>
+      <div class="header-rule"></div>
 
-    <div class="cert-title">Certificate of Completion</div>
+      <!-- Award badge: circle with ribbon tails below -->
+      <div class="award-circle"></div>
+      <div style="margin-top:1mm;">
+        <span class="award-ribbon-left"></span>
+        <span class="award-ribbon-gap"></span>
+        <span class="award-ribbon-right"></span>
+      </div>
 
-    <div class="presents-text">This certifies that</div>
+      <div class="cert-title">Certificate of Completion</div>
 
-    <div class="student-name" th:text="${studentName}">Student Name</div>
-    <div class="name-rule"></div>
+      <div class="presents-text">This certifies that</div>
 
-    <div class="completed-text">has successfully completed</div>
+      <div class="student-name" th:text="${studentName}">Student Name</div>
+      <div class="name-rule"></div>
 
-    <div class="course-title" th:text="${courseTitle}">Course Title</div>
+      <div class="completed-text">has successfully completed</div>
 
-    <div class="award-note">Awarded for excellence in learning and dedication to mastery</div>
+      <div class="course-title" th:text="${courseTitle}">Course Title</div>
+
+      <div class="award-note">Awarded for excellence in learning and dedication to mastery</div>
+
+    </div>
   </div>
 
   <!-- Footer -->
