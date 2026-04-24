@@ -44,6 +44,10 @@ public interface UserConceptProgressRepository extends JpaRepository<UserConcept
     List<UserConceptProgress> findWeakConcepts(@Param("userId") UUID userId, @Param("threshold") double threshold);
 
     @Query("SELECT ucp FROM UserConceptProgress ucp " +
+           "JOIN FETCH ucp.concept c " +
+           "JOIN FETCH c.topic t " +
+           "JOIN FETCH t.module m " +
+           "JOIN FETCH m.course " +
            "WHERE ucp.user.id = :userId AND ucp.status = 'MASTERED' " +
            "AND ucp.nextReviewAt IS NOT NULL AND ucp.nextReviewAt <= :now " +
            "ORDER BY ucp.nextReviewAt ASC")

@@ -359,6 +359,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         return dueForReview.stream()
                 .map(p -> UserProgressResponse.builder()
                         .userId(userId)
+                        .courseId(p.getConcept().getTopic().getModule().getCourse().getId())
                         .conceptId(p.getConcept().getId())
                         .conceptTitle(p.getConcept().getTitle())
                         .masteryLevel(p.getMasteryLevel())

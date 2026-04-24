@@ -11,6 +11,7 @@ import java.util.UUID;
 @Builder
 public class UserProgressResponse {
     private UUID userId;
+    private UUID courseId;
     private UUID conceptId;
     private String conceptTitle;
     private Double masteryLevel;
