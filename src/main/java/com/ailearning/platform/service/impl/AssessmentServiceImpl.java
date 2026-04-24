@@ -351,6 +351,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<UserProgressResponse> getReviewQueue(UUID userId) {
         List<UserConceptProgress> dueForReview = progressRepository
                 .findDueForReview(userId, LocalDateTime.now());

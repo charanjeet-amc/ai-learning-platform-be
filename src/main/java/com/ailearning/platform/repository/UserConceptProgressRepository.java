@@ -39,7 +39,7 @@ public interface UserConceptProgressRepository extends JpaRepository<UserConcept
     long countMasteredByUser(@Param("userId") UUID userId);
 
     @Query("SELECT ucp FROM UserConceptProgress ucp " +
-           "WHERE ucp.user.id = :userId AND ucp.masteryLevel < :threshold " +
+           "WHERE ucp.user.id = :userId AND ucp.masteryLevel < :threshold AND ucp.attempts > 0 " +
            "ORDER BY ucp.masteryLevel ASC")
     List<UserConceptProgress> findWeakConcepts(@Param("userId") UUID userId, @Param("threshold") double threshold);
 
