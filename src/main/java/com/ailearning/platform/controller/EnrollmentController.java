@@ -10,6 +10,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -50,5 +51,17 @@ public class EnrollmentController {
             @AuthenticationPrincipal Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
         return ResponseEntity.ok(enrollmentService.isEnrolled(userId, courseId));
+    }
+
+    @PutMapping("/{courseId}/last-visited")
+    public ResponseEntity<Void> trackConceptVisit(
+            @PathVariable UUID courseId,
+            @RequestBody Map<String, UUID> body,
+            @AuthenticationPrincipal Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        UUID conceptId = body.get("conceptId");
+        if (conceptId == null) return ResponseEntity.badRequest().build();
+        enrollmentService.trackConceptVisit(userId, courseId, conceptId);
+        return ResponseEntity.ok().build();
     }
 }

@@ -131,6 +131,15 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         enrollmentRepository.save(enrollment);
     }
 
+    @Override
+    @Transactional
+    public void trackConceptVisit(UUID userId, UUID courseId, UUID conceptId) {
+        Enrollment enrollment = enrollmentRepository.findByUserIdAndCourseId(userId, courseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Enrollment", "userId+courseId", userId));
+        enrollment.setCurrentConceptId(conceptId);
+        enrollmentRepository.save(enrollment);
+    }
+
     private EnrolledCourseResponse mapToResponse(Enrollment enrollment) {
         Course course = enrollment.getCourse();
         return EnrolledCourseResponse.builder()

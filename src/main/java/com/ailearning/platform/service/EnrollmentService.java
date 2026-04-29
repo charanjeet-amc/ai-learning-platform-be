@@ -11,4 +11,5 @@ public interface EnrollmentService {
     List<EnrolledCourseResponse> getUserEnrollments(UUID userId);
     boolean isEnrolled(UUID userId, UUID courseId);
     void updateProgress(UUID userId, UUID courseId);
+    void trackConceptVisit(UUID userId, UUID courseId, UUID conceptId);
 }

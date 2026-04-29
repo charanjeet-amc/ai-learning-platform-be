@@ -19,4 +19,6 @@ public class AnswerResultResponse {
     private Integer xpEarned = 0;
     private UUID nextConceptId;
     private Boolean fastTracked;
+    private Boolean misconceptionTriggered;
+    private String misconceptionText;
 }

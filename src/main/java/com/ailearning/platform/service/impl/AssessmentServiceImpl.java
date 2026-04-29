@@ -12,6 +12,7 @@ import com.ailearning.platform.entity.enums.LearningPace;
 import com.ailearning.platform.repository.*;
 import com.ailearning.platform.ai.MasteryCalculator;
 import com.ailearning.platform.ai.AdaptiveEngine;
+import com.ailearning.platform.ai.MisconceptionDetector;
 import com.ailearning.platform.ai.SpacedRepetitionEngine;
 import com.ailearning.platform.ai.QuestionGeneratorEngine;
 import com.ailearning.platform.service.AssessmentService;
@@ -48,6 +49,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     private final ConceptRepository conceptRepository;
     private final MasteryCalculator masteryCalculator;
     private final AdaptiveEngine adaptiveEngine;
+    private final MisconceptionDetector misconceptionDetector;
     private final SpacedRepetitionEngine spacedRepetitionEngine;
     private final QuestionGeneratorEngine questionGeneratorEngine;
     private final GamificationService gamificationService;
@@ -104,6 +106,15 @@ public class AssessmentServiceImpl implements AssessmentService {
             score = correct ? 1.0 : 0.0;
         }
 
+        // Misconception detection — only meaningful on wrong answers
+        String detectedMisconception = null;
+        if (!correct) {
+            Object answerObj = request.getAnswer().get("answer");
+            String answerText = answerObj != null ? answerObj.toString() : "";
+            detectedMisconception = misconceptionDetector.detect(
+                    answerText, question.getConcept().getMisconceptions());
+        }
+
         // Record the attempt
         UserAttempt attempt = UserAttempt.builder()
                 .user(user)
@@ -113,6 +124,7 @@ public class AssessmentServiceImpl implements AssessmentService {
                 .correct(correct)
                 .timeTakenSeconds(request.getTimeTakenSeconds())
                 .hintsUsed(request.getHintsUsed() != null ? request.getHintsUsed() : 0)
+                .triggeredMisconception(detectedMisconception)
                 .build();
         attempt = userAttemptRepository.save(attempt);
 
@@ -222,6 +234,8 @@ public class AssessmentServiceImpl implements AssessmentService {
                 .xpEarned(xpEarned)
                 .nextConceptId(nextConceptId)
                 .fastTracked(fastTracked)
+                .misconceptionTriggered(detectedMisconception != null)
+                .misconceptionText(detectedMisconception)
                 .build();
     }
 

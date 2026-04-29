@@ -12,6 +12,7 @@ import com.ailearning.platform.exception.ResourceNotFoundException;
 import com.ailearning.platform.repository.ConceptRepository;
 import com.ailearning.platform.repository.CourseRepository;
 import com.ailearning.platform.repository.UserConceptProgressRepository;
+import com.ailearning.platform.repository.EnrollmentRepository;
 import com.ailearning.platform.repository.UserLearningProfileRepository;
 import com.ailearning.platform.service.LearningPathService;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class LearningPathServiceImpl implements LearningPathService {
     private final ConceptRepository conceptRepository;
     private final UserConceptProgressRepository progressRepository;
     private final UserLearningProfileRepository learningProfileRepository;
+    private final EnrollmentRepository enrollmentRepository;
     private final LearningPathEngine learningPathEngine;
 
     @Override
@@ -105,6 +107,23 @@ public class LearningPathServiceImpl implements LearningPathService {
             default -> 5;
         };
 
+        // Last visited concept from enrollment — skip if it equals the first concept (no meaningful resume point)
+        UUID lastVisitedConceptId = null;
+        String lastVisitedConceptTitle = null;
+        UUID firstConceptId = allConcepts.isEmpty() ? null : allConcepts.get(0).getId();
+        UUID enrollmentCurrentId = enrollmentRepository.findByUserIdAndCourseId(userId, courseId)
+                .map(e -> e.getCurrentConceptId())
+                .orElse(null);
+        if (enrollmentCurrentId != null && !enrollmentCurrentId.equals(firstConceptId)) {
+            lastVisitedConceptId = enrollmentCurrentId;
+            UUID finalId = lastVisitedConceptId;
+            lastVisitedConceptTitle = allConcepts.stream()
+                    .filter(c -> c.getId().equals(finalId))
+                    .findFirst()
+                    .map(Concept::getTitle)
+                    .orElse(null);
+        }
+
         return LearningPathResponse.builder()
                 .courseId(courseId)
                 .courseTitle(course.getTitle())
@@ -114,6 +133,8 @@ public class LearningPathServiceImpl implements LearningPathService {
                 .nextConceptId(nextConceptId)
                 .nextConceptTitle(nextConceptTitle)
                 .sessionConceptLimit(sessionConceptLimit)
+                .lastVisitedConceptId(lastVisitedConceptId)
+                .lastVisitedConceptTitle(lastVisitedConceptTitle)
                 .build();
     }
 

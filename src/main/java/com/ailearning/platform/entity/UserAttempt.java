@@ -44,6 +44,9 @@ public class UserAttempt {
     @Builder.Default
     private Integer hintsUsed = 0;
 
+    @Column(columnDefinition = "TEXT")
+    private String triggeredMisconception;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

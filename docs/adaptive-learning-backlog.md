@@ -46,23 +46,20 @@ Code already exists; needs to be called at the right points in the learning flow
 
 ## Phase 2 — High-Value Gaps (New Logic Required)
 
-### 6. Session Continuity (Resume Where You Left Off)
-- **Status:** Not implemented
-- **What's needed:**
-  - Track `lastVisitedConceptId` per enrollment (add to `Enrollment` entity or `UserLearningProfile`)
-  - Update it whenever a concept is opened (new endpoint or piggyback on existing progress call)
-  - Course player reads it on load and auto-navigates to the last concept instead of module 1
-- **BE:** Add `lastVisitedConceptId UUID` to `Enrollment`; new Flyway migration; update on concept view
-- **FE:** `CoursePlayerPage.tsx` — on initial load, if `lastVisitedConceptId` exists, navigate there instead of first module
+### 6. Session Continuity (Resume Where You Left Off) ✅ DONE (2026-04-29)
+- Reuses existing `enrollment.currentConceptId` column (no migration needed)
+- `EnrollmentService.trackConceptVisit(userId, courseId, conceptId)` updates `currentConceptId`; wired to `PUT /api/enrollments/{courseId}/last-visited`
+- `LearningPathServiceImpl` reads enrollment's `currentConceptId` and exposes it as `lastVisitedConceptId` + `lastVisitedConceptTitle` on `LearningPathResponse` (suppressed when it equals the first concept — no meaningful resume point)
+- FE: `LearningPath` type updated; `enrollmentApi` has `useTrackConceptVisitMutation`
+- FE: `CoursePlayerPage` session-restore effect waits for `learningPath` to load before navigating — resumes at `lastVisitedConceptId` if set, otherwise falls back to first module
+- FE: `handleTreeSelect` + `navigateToNode` fire `trackConceptVisit` on every concept open (fire-and-forget)
 
-### 7. Misconception-Triggered Targeted Remediation
-- **Status:** Not implemented; `misconceptions` field exists on `Concept` entity (list of known misconception strings)
-- **What's needed:**
-  - When a student answers incorrectly, check if their wrong answer matches a known misconception pattern
-  - If matched: flag it, return targeted remediation content (specific explanation), possibly unlock a remediation `LearningUnit`
-  - Track misconceptions hit per user (new `UserMisconception` table or add to `UserAttempt`)
-- **BE:** `AssessmentServiceImpl.submitAnswer` — add misconception detection step; `MisconceptionService`
-- **FE:** `QuizView.tsx` — show misconception callout card if `misconceptionTriggered: true` in submit response
+### 7. Misconception-Triggered Targeted Remediation ✅ DONE (2026-04-29)
+- `ai/MisconceptionDetector` — keyword extraction (≥5 chars, stopwords filtered) from each `ConceptMisconception` text; `anyMatch` against the user's wrong answer; first matching misconception text returned
+- `V8__misconception_tracking.sql` — `triggered_misconception TEXT` column on `user_attempts`
+- `UserAttempt` entity: `triggeredMisconception` field persisted on every wrong answer where a match is found
+- `AssessmentServiceImpl.submitAnswer`: detects before attempt save; `AnswerResultResponse` includes `misconceptionTriggered` + `misconceptionText`
+- FE: `AnswerResult` type updated; `QuizView` shows amber callout card "Common Misconception Detected" with the misconception text when `misconceptionTriggered === true`
 
 ---
 
