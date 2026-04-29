@@ -16,4 +16,5 @@ public class LearningPathResponse {
     private Integer completedSteps;
     private UUID nextConceptId;
     private String nextConceptTitle;
+    private Integer sessionConceptLimit;
 }

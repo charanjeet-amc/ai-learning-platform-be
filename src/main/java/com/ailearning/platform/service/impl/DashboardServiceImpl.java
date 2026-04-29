@@ -24,6 +24,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final UserRepository userRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final UserConceptProgressRepository progressRepository;
+    private final UserWeakAreaRepository weakAreaRepository;
     private final GamificationService gamificationService;
 
     @Override
@@ -44,18 +45,23 @@ public class DashboardServiceImpl implements DashboardService {
                         .build())
                 .collect(Collectors.toList());
 
-        List<UserProgressResponse> weakAreas = progressRepository
-                .findWeakConcepts(userId, 0.6).stream()
+        List<UserProgressResponse> weakAreas = weakAreaRepository
+                .findWeakAreasByUserId(userId).stream()
                 .limit(5)
-                .map(p -> UserProgressResponse.builder()
-                        .userId(userId)
-                        .conceptId(p.getConcept().getId())
-                        .conceptTitle(p.getConcept().getTitle())
-                        .masteryLevel(p.getMasteryLevel())
-                        .confidenceScore(p.getConfidenceScore())
-                        .attempts(p.getAttempts())
-                        .status(p.getStatus())
-                        .build())
+                .map(wa -> {
+                    UserConceptProgress p = progressRepository
+                            .findByUserIdAndConceptId(userId, wa.getConcept().getId())
+                            .orElse(null);
+                    return UserProgressResponse.builder()
+                            .userId(userId)
+                            .conceptId(wa.getConcept().getId())
+                            .conceptTitle(wa.getConcept().getTitle())
+                            .masteryLevel(p != null ? p.getMasteryLevel() : 0.0)
+                            .confidenceScore(p != null ? p.getConfidenceScore() : 0.0)
+                            .attempts(p != null ? p.getAttempts() : 0)
+                            .status(p != null ? p.getStatus() : null)
+                            .build();
+                })
                 .collect(Collectors.toList());
 
         List<BadgeResponse> badges = gamificationService.getUserBadges(userId);

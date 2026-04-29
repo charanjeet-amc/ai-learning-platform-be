@@ -2,6 +2,7 @@ package com.ailearning.platform.ai;
 
 import com.ailearning.platform.entity.UserConceptProgress;
 import com.ailearning.platform.entity.enums.ConceptStatus;
+import com.ailearning.platform.entity.enums.LearningPace;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -41,6 +42,15 @@ public class SpacedRepetitionEngine {
      * Modifies the progress entity in place.
      */
     public void scheduleReview(UserConceptProgress progress, double mastery) {
+        scheduleReview(progress, mastery, LearningPace.MEDIUM);
+    }
+
+    /**
+     * Schedule next review with pace-adjusted intervals.
+     * SLOW learners get shorter intervals (more frequent review);
+     * FAST learners get longer intervals (can space reviews out).
+     */
+    public void scheduleReview(UserConceptProgress progress, double mastery, LearningPace pace) {
         int quality = masteryToQuality(mastery);
         double ef = progress.getEaseFactor() != null ? progress.getEaseFactor() : 2.5;
         int interval = progress.getReviewIntervalDays() != null ? progress.getReviewIntervalDays() : 1;
@@ -65,6 +75,13 @@ public class SpacedRepetitionEngine {
             ef = Math.max(MIN_EASE_FACTOR, ef - 0.2);
         }
 
+        // Apply pace multiplier: SLOW reviews more often, FAST less often
+        double paceMultiplier = switch (pace) {
+            case SLOW -> 0.75;
+            case FAST -> 1.5;
+            default -> 1.0;
+        };
+        interval = (int) Math.max(1, Math.round(interval * paceMultiplier));
         interval = Math.min(interval, MAX_INTERVAL_DAYS);
 
         progress.setReviewIntervalDays(interval);

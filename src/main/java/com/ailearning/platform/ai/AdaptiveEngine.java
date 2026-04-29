@@ -19,19 +19,25 @@ public class AdaptiveEngine {
     private static final double MASTERY_THRESHOLD = 0.85;
     private static final double REINFORCE_THRESHOLD = 0.6;
     private static final double FAST_TRACK_THRESHOLD = 0.90;
+    // Raw frustration score above this triggers early remediation (≈4 wrong attempts, or 3 wrong + heavy hint use)
+    private static final double FRUSTRATION_REMEDIATE_THRESHOLD = 2.0;
 
     private final ConceptRepository conceptRepository;
     private final UserConceptProgressRepository progressRepository;
     private final MasteryCalculator masteryCalculator;
 
-    public String determineNextAction(double mastery) {
+    public String determineNextAction(double mastery, double frustrationScore) {
         if (mastery >= MASTERY_THRESHOLD) {
             return "advance";
-        } else if (mastery >= REINFORCE_THRESHOLD) {
-            return "reinforce";
-        } else {
+        }
+        // Student is frustrated and not mastered — skip reinforce, go straight to remediation
+        if (frustrationScore >= FRUSTRATION_REMEDIATE_THRESHOLD) {
             return "remediate";
         }
+        if (mastery >= REINFORCE_THRESHOLD) {
+            return "reinforce";
+        }
+        return "remediate";
     }
 
     public UUID determineNextConcept(UUID userId, UUID currentConceptId) {

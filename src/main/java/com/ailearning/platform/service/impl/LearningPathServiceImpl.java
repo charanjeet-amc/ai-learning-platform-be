@@ -7,10 +7,12 @@ import com.ailearning.platform.entity.Concept;
 import com.ailearning.platform.entity.Course;
 import com.ailearning.platform.entity.UserConceptProgress;
 import com.ailearning.platform.entity.enums.ConceptStatus;
+import com.ailearning.platform.entity.enums.LearningPace;
 import com.ailearning.platform.exception.ResourceNotFoundException;
 import com.ailearning.platform.repository.ConceptRepository;
 import com.ailearning.platform.repository.CourseRepository;
 import com.ailearning.platform.repository.UserConceptProgressRepository;
+import com.ailearning.platform.repository.UserLearningProfileRepository;
 import com.ailearning.platform.service.LearningPathService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +31,7 @@ public class LearningPathServiceImpl implements LearningPathService {
     private final CourseRepository courseRepository;
     private final ConceptRepository conceptRepository;
     private final UserConceptProgressRepository progressRepository;
+    private final UserLearningProfileRepository learningProfileRepository;
     private final LearningPathEngine learningPathEngine;
 
     @Override
@@ -89,8 +92,18 @@ public class LearningPathServiceImpl implements LearningPathService {
                     .status(status)
                     .masteryLevel(mastery)
                     .reason(reason)
+                    .fastTracked(progress != null && Boolean.TRUE.equals(progress.getFastTracked()))
                     .build());
         }
+
+        LearningPace pace = learningProfileRepository.findById(userId)
+                .map(p -> p.getPace())
+                .orElse(LearningPace.MEDIUM);
+        int sessionConceptLimit = switch (pace) {
+            case SLOW -> 3;
+            case FAST -> 8;
+            default -> 5;
+        };
 
         return LearningPathResponse.builder()
                 .courseId(courseId)
@@ -100,6 +113,7 @@ public class LearningPathServiceImpl implements LearningPathService {
                 .completedSteps(completedCount)
                 .nextConceptId(nextConceptId)
                 .nextConceptTitle(nextConceptTitle)
+                .sessionConceptLimit(sessionConceptLimit)
                 .build();
     }
 

@@ -1,0 +1,1 @@
+ALTER TABLE user_concept_progress ADD COLUMN IF NOT EXISTS frustration_score DOUBLE PRECISION DEFAULT 0.0;

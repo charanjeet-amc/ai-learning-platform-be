@@ -7,6 +7,8 @@ import com.ailearning.platform.entity.*;
 import com.ailearning.platform.entity.enums.ConceptStatus;
 import com.ailearning.platform.entity.enums.QuestionType;
 import com.ailearning.platform.exception.ResourceNotFoundException;
+import com.ailearning.platform.entity.UserLearningProfile;
+import com.ailearning.platform.entity.enums.LearningPace;
 import com.ailearning.platform.repository.*;
 import com.ailearning.platform.ai.MasteryCalculator;
 import com.ailearning.platform.ai.AdaptiveEngine;
@@ -41,6 +43,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     private final QuestionRepository questionRepository;
     private final UserAttemptRepository userAttemptRepository;
     private final UserConceptProgressRepository progressRepository;
+    private final UserWeakAreaRepository weakAreaRepository;
     private final UserRepository userRepository;
     private final ConceptRepository conceptRepository;
     private final MasteryCalculator masteryCalculator;
@@ -49,6 +52,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     private final QuestionGeneratorEngine questionGeneratorEngine;
     private final GamificationService gamificationService;
     private final EnrollmentService enrollmentService;
+    private final UserLearningProfileRepository learningProfileRepository;
     private final OpenAIClient openAIClient;
     private final ObjectMapper objectMapper;
 
@@ -59,7 +63,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         UserConceptProgress progress = progressRepository
                 .findByUserIdAndConceptId(userId, conceptId).orElse(null);
 
-        List<Question> allQuestions = questionRepository.findByConceptId(conceptId);
+        List<Question> allQuestions = questionRepository.findByConceptIdForUser(conceptId, userId);
 
         // Filter by difficulty based on user progress, but always fall back to all questions
         List<Question> questions = allQuestions;
@@ -145,10 +149,30 @@ public class AssessmentServiceImpl implements AssessmentService {
             }
         }
 
-        // Schedule spaced repetition review
-        spacedRepetitionEngine.scheduleReview(progress, mastery);
+        // Check fast-track: mastered on first or second attempt with score ≥ 0.90
+        boolean fastTracked = false;
+        if (justMastered && progress.getAttempts() <= 2
+                && adaptiveEngine.canFastTrack(userId, conceptId, mastery)) {
+            progress.setFastTracked(true);
+            fastTracked = true;
+        }
+
+        // Compute and persist frustration score
+        int wrongAttempts = progress.getAttempts() - progress.getCorrectAttempts();
+        long timeTaken = request.getTimeTakenSeconds() != null ? request.getTimeTakenSeconds() : 0L;
+        double frustration = adaptiveEngine.calculateFrustrationScore(wrongAttempts, timeTaken, progress.getHintsUsed());
+        progress.setFrustrationScore(frustration);
+
+        // Schedule spaced repetition review — interval adjusted by user's learning pace
+        LearningPace pace = learningProfileRepository.findById(userId)
+                .map(UserLearningProfile::getPace)
+                .orElse(LearningPace.MEDIUM);
+        spacedRepetitionEngine.scheduleReview(progress, mastery, pace);
 
         progressRepository.save(progress);
+
+        // Update weak area score based on latest progress
+        updateWeakArea(user, question.getConcept(), userId, conceptId, mastery, progress);
 
         // Update course enrollment progress
         try {
@@ -158,8 +182,8 @@ public class AssessmentServiceImpl implements AssessmentService {
             log.warn("Could not update enrollment progress: {}", e.getMessage());
         }
 
-        // Determine next action
-        String nextAction = adaptiveEngine.determineNextAction(mastery);
+        // Determine next action — frustration can override "reinforce" → "remediate"
+        String nextAction = adaptiveEngine.determineNextAction(mastery, frustration);
 
         // Award XP for correct answer — only if this question hasn't been answered correctly before
         int xpEarned = 0;
@@ -197,6 +221,7 @@ public class AssessmentServiceImpl implements AssessmentService {
                 .nextAction(nextAction)
                 .xpEarned(xpEarned)
                 .nextConceptId(nextConceptId)
+                .fastTracked(fastTracked)
                 .build();
     }
 
@@ -350,6 +375,31 @@ public class AssessmentServiceImpl implements AssessmentService {
                 .build();
     }
 
+    private void updateWeakArea(User user, Concept concept, UUID userId, UUID conceptId,
+                                double mastery, UserConceptProgress progress) {
+        if (mastery >= 0.85) {
+            // Concept is mastered — remove from weak areas
+            weakAreaRepository.findByUserIdAndConceptId(userId, conceptId)
+                    .ifPresent(weakAreaRepository::delete);
+        } else if (progress.getAttempts() > 0) {
+            double score = calculateWeaknessScore(progress);
+            UserWeakArea weakArea = weakAreaRepository
+                    .findByUserIdAndConceptId(userId, conceptId)
+                    .orElseGet(() -> UserWeakArea.builder().user(user).concept(concept).build());
+            weakArea.setWeaknessScore(score);
+            weakAreaRepository.save(weakArea);
+        }
+    }
+
+    private double calculateWeaknessScore(UserConceptProgress progress) {
+        // 60% weight on low mastery, 30% on error rate, 10% on hint reliance
+        double masteryComponent = 1.0 - progress.getMasteryLevel();
+        int wrong = progress.getAttempts() - progress.getCorrectAttempts();
+        double errorRate = progress.getAttempts() > 0 ? (double) wrong / progress.getAttempts() : 0.0;
+        double hintsComponent = Math.min(1.0, progress.getHintsUsed() * 0.1);
+        return Math.min(1.0, masteryComponent * 0.6 + errorRate * 0.3 + hintsComponent * 0.1);
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<UserProgressResponse> getReviewQueue(UUID userId) {
@@ -382,10 +432,10 @@ public class AssessmentServiceImpl implements AssessmentService {
                 .findByUserIdAndConceptId(userId, conceptId).orElse(null);
 
         List<Question> generated = questionGeneratorEngine.generateQuestions(concept, progress, 3);
+        generated.forEach(q -> q.setGeneratedForUserId(userId));
 
-        // Save generated questions to DB
         List<Question> saved = questionRepository.saveAll(generated);
-        log.info("Generated and saved {} AI questions for concept {}", saved.size(), conceptId);
+        log.info("Generated and saved {} AI questions for concept {} for user {}", saved.size(), conceptId, userId);
 
         return saved.stream()
                 .map(this::mapToResponse)

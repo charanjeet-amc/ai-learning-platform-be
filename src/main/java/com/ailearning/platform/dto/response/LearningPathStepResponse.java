@@ -17,4 +17,5 @@ public class LearningPathStepResponse {
     private ConceptStatus status;
     private Double masteryLevel;
     private String reason; // "remediation", "in_progress", "new", "reinforcement"
+    private Boolean fastTracked;
 }

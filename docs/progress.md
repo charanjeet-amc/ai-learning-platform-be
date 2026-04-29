@@ -1,41 +1,53 @@
 # Backend Progress Log
 
+## 2026-04-25
+- Fixed `EnrollmentService.updateProgress` transaction isolation bug:
+  - Changed to `Propagation.REQUIRES_NEW` so it runs in an independent transaction
+  - Previously: `ResourceNotFoundException` inside poisoned the outer `submitAnswer` transaction → silent rollback → submit button did nothing
+- AI question user-scoping:
+  - V5 migration: added `generated_for_user_id` to `questions`
+  - `getQuestionsForConcept` now uses `findByConceptIdForUser` (shows shared + user-specific questions)
+  - `generateAIQuestions` stamps `generatedForUserId = userId` before saving
+  - V6 migration: deleted orphaned AI questions (created before V5, had NULL user scope, were visible to all)
+
+## 2026-04-24
+- Spaced repetition review queue now working:
+  - `findDueForReview` JPQL uses `JOIN FETCH` chain to avoid `LazyInitializationException` (`open-in-view: false`)
+  - `getReviewQueue` marked `@Transactional(readOnly = true)`
+  - `UserProgressResponse` now includes `courseId` field for navigation links
+- Weak areas bug fixed: `findWeakConcepts` now filters `attempts > 0` (was showing unattempted concepts)
+- Dashboard `completedAt` date bug fixed on FE side: `cert.completedAt ?? cert.issuedAt`
+
 ## 2026-04-17
-- AI-powered evaluation for SUBJECTIVE and CODING answers using GPT-4o (OpenAI SDK 4.31.0)
-- Keyword-based fallback when OpenAI API fails
-- Score returned as 0.0-1.0 float, feedback as detailed string
+- AI-powered evaluation for SUBJECTIVE/CODING answers (GPT-4o, score 0–1 + detailed feedback)
+- Keyword-based fallback when OpenAI API unavailable
 - SCENARIO_BASED questions: case-insensitive exact match
 - Seed endpoint for non-MCQ questions (`POST /api/public/seed-extra-questions`)
-- Bugs fixed: AI tutor `query` field (was `message`), assessment `score`/`feedback` fields in response
+- Fixed: AI tutor `query` field (was `message`), assessment `score`/`feedback` fields in response
 
 ## 2026-04-16
 - Course approval workflow: DRAFT → PENDING_APPROVAL → PUBLISHED / CHANGES_REQUESTED
-- Admin course review endpoints (approve/reject with feedback)
-- `AdminCourseController` + `AdminCourseService`
-- CourseStatus enum expanded
-- Bugs fixed: publish endpoint permissions, status transition validation
+- `AdminCourseController` + `AdminCourseService`: approve/reject with feedback
+- `CourseStatus` enum expanded
 
 ## 2026-04-15
-- Instructor onboarding flow (PENDING_INSTRUCTOR role → application → admin approval → INSTRUCTOR)
+- Instructor onboarding: PENDING_INSTRUCTOR → application → admin approval → INSTRUCTOR
 - `InstructorApplicationController` + `AdminInstructorController`
-- Course editor (create/update via `CourseController`)
-- Bugs fixed: instructor application duplicate check, role upgrade on approval
+- JWT roles → Spring Security authorities fix (`JwtAuthenticationConverter`)
+- Category backfill for existing seed courses
 
 ## 2026-04-14
-- Gamification system: XP awards (10 XP enrollment, 5-25 XP per correct answer), badge system, streaks, leaderboard
-- `GamificationController`, `DashboardController`, `LearningHistoryController`
-- Redis caching for leaderboard and course lists
-- Bugs fixed: XP double-award on re-enrollment, leaderboard cache invalidation
+- Gamification: XP events, streaks, badges, leaderboard
+- Dashboard, learning history, Redis caching
+- `JacksonConfig`: serialize `LocalDateTime` with 'Z' UTC suffix
 
 ## 2026-04-13
-- Initial project setup: Spring Boot 3.4.4, PostgreSQL, JWT auth
-- Course catalog with modules → topics → concepts → learningUnits hierarchy
-- Course player tree endpoint (`/api/courses/{id}/tree`)
-- AI tutor (Socratic method, 4-level hint escalation via GPT-4o)
-- MCQ assessment with mastery tracking
+- Initial setup: Spring Boot 3.4.4, PostgreSQL, Flyway, JWT auth
+- Full knowledge graph: Course → Module → Topic → Concept → LearningUnit
+- AI Tutor: Socratic method, 4-level hint escalation, GPT-4o
+- MCQ assessment with mastery tracking (MasteryCalculator, AdaptiveEngine, SpacedRepetitionEngine)
 - Seed data: 5 demo courses
-- Bugs fixed: JWT expiry timezone, CORS config for Vite dev server
 
 ## See also
-- [conventions.md](conventions.md) — Coding standards
 - [api-contracts.md](api-contracts.md) — Endpoint reference
+- [conventions.md](conventions.md) — Coding standards

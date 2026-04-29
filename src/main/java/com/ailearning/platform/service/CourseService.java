@@ -14,6 +14,7 @@ public interface CourseService {
     CourseResponse createCourse(CreateCourseRequest request, UUID creatorId);
     CourseResponse getCourse(UUID courseId);
     CourseResponse getCourseWithTree(UUID courseId);
+    CourseResponse getCourseWithTree(UUID courseId, UUID userId);
     Page<CourseResponse> listCourses(Pageable pageable);
     Page<CourseResponse> searchCourses(String query, Pageable pageable);
     Page<CourseResponse> filterCourses(String category, DifficultyLevel difficulty,

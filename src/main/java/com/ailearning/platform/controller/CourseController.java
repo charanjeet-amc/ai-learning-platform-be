@@ -63,8 +63,11 @@ public class CourseController {
     }
 
     @GetMapping("/courses/{courseId}/tree")
-    public ResponseEntity<CourseResponse> getCourseWithTree(@PathVariable UUID courseId) {
-        return ResponseEntity.ok(courseService.getCourseWithTree(courseId));
+    public ResponseEntity<CourseResponse> getCourseWithTree(
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal Jwt jwt) {
+        UUID userId = jwt != null ? UUID.fromString(jwt.getSubject()) : null;
+        return ResponseEntity.ok(courseService.getCourseWithTree(courseId, userId));
     }
 
     @PreAuthorize("hasAnyRole('INSTRUCTOR', 'ADMIN')")

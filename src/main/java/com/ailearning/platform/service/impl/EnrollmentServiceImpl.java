@@ -9,6 +9,7 @@ import com.ailearning.platform.service.EnrollmentService;
 import com.ailearning.platform.service.GamificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -103,7 +104,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     }
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void updateProgress(UUID userId, UUID courseId) {
         Enrollment enrollment = enrollmentRepository.findByUserIdAndCourseId(userId, courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Enrollment", "userId+courseId", userId));

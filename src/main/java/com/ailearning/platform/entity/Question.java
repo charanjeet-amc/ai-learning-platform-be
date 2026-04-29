@@ -51,6 +51,9 @@ public class Question {
     @Builder.Default
     private Boolean aiGenerated = false;
 
+    @Column(name = "generated_for_user_id")
+    private UUID generatedForUserId;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

@@ -66,6 +66,9 @@ public class UserConceptProgress {
     @Builder.Default
     private Double easeFactor = 2.5;
 
+    @Builder.Default
+    private Double frustrationScore = 0.0;
+
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 }

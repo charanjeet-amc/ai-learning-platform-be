@@ -84,7 +84,9 @@ public class AITutorServiceImpl implements AITutorService {
         String nextAction = null;
         if (context.getUserProgress() != null) {
             double mastery = masteryCalculator.calculate(context.getUserProgress());
-            nextAction = adaptiveEngine.determineNextAction(mastery);
+            double frustration = context.getUserProgress().getFrustrationScore() != null
+                    ? context.getUserProgress().getFrustrationScore() : 0.0;
+            nextAction = adaptiveEngine.determineNextAction(mastery, frustration);
         }
 
         // 6. Save interaction

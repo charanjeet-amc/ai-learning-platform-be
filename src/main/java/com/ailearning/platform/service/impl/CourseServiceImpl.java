@@ -5,7 +5,9 @@ import com.ailearning.platform.dto.response.*;
 import com.ailearning.platform.entity.*;
 import com.ailearning.platform.entity.Module;
 import com.ailearning.platform.entity.enums.ConceptStatus;
+import com.ailearning.platform.entity.enums.ContentType;
 import com.ailearning.platform.entity.enums.DifficultyLevel;
+import com.ailearning.platform.entity.enums.LearningStyle;
 import com.ailearning.platform.exception.ResourceNotFoundException;
 import com.ailearning.platform.repository.*;
 import com.ailearning.platform.service.CourseService;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -35,6 +38,7 @@ public class CourseServiceImpl implements CourseService {
     private final ConceptRepository conceptRepository;
     private final UserConceptProgressRepository progressRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final UserLearningProfileRepository learningProfileRepository;
 
     @Override
     @Transactional
@@ -72,9 +76,18 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public CourseResponse getCourseWithTree(UUID courseId) {
+        return getCourseWithTree(courseId, null);
+    }
+
+    @Override
+    public CourseResponse getCourseWithTree(UUID courseId, UUID userId) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course", "id", courseId));
-        return mapToResponseWithTree(course);
+        LearningStyle style = userId == null ? null
+                : learningProfileRepository.findById(userId)
+                        .map(p -> p.getPreferredStyle())
+                        .orElse(null);
+        return mapToResponseWithTree(course, style);
     }
 
     @Override
@@ -225,14 +238,18 @@ public class CourseServiceImpl implements CourseService {
     }
 
     private CourseResponse mapToResponseWithTree(Course course) {
+        return mapToResponseWithTree(course, null);
+    }
+
+    private CourseResponse mapToResponseWithTree(Course course, LearningStyle style) {
         CourseResponse response = mapToResponse(course);
         response.setModules(course.getModules().stream()
-                .map(this::mapModuleResponse)
+                .map(m -> mapModuleResponse(m, style))
                 .collect(Collectors.toList()));
         return response;
     }
 
-    private ModuleResponse mapModuleResponse(Module module) {
+    private ModuleResponse mapModuleResponse(Module module, LearningStyle style) {
         return ModuleResponse.builder()
                 .id(module.getId())
                 .title(module.getTitle())
@@ -240,12 +257,12 @@ public class CourseServiceImpl implements CourseService {
                 .orderIndex(module.getOrderIndex())
                 .learningObjectives(module.getLearningObjectives())
                 .topics(module.getTopics().stream()
-                        .map(this::mapTopicResponse)
+                        .map(t -> mapTopicResponse(t, style))
                         .collect(Collectors.toList()))
                 .build();
     }
 
-    private TopicResponse mapTopicResponse(Topic topic) {
+    private TopicResponse mapTopicResponse(Topic topic, LearningStyle style) {
         return TopicResponse.builder()
                 .id(topic.getId())
                 .title(topic.getTitle())
@@ -253,12 +270,19 @@ public class CourseServiceImpl implements CourseService {
                 .estimatedTimeMinutes(topic.getEstimatedTimeMinutes())
                 .tags(topic.getTags())
                 .concepts(topic.getConcepts().stream()
-                        .map(this::mapConceptResponse)
+                        .map(c -> mapConceptResponse(c, style))
                         .collect(Collectors.toList()))
                 .build();
     }
 
-    private ConceptResponse mapConceptResponse(Concept concept) {
+    private ConceptResponse mapConceptResponse(Concept concept, LearningStyle style) {
+        List<LearningUnitResponse> units = concept.getLearningUnits().stream()
+                .map(this::mapLearningUnitResponse)
+                .sorted(Comparator
+                        .comparingInt((LearningUnitResponse u) -> stylePriority(u.getContentType(), style))
+                        .thenComparingInt(u -> u.getOrderIndex() != null ? u.getOrderIndex() : 0))
+                .collect(Collectors.toList());
+
         return ConceptResponse.builder()
                 .id(concept.getId())
                 .title(concept.getTitle())
@@ -266,9 +290,7 @@ public class CourseServiceImpl implements CourseService {
                 .difficultyLevel(concept.getDifficultyLevel())
                 .orderIndex(concept.getOrderIndex())
                 .tags(concept.getTags())
-                .learningUnits(concept.getLearningUnits().stream()
-                        .map(this::mapLearningUnitResponse)
-                        .collect(Collectors.toList()))
+                .learningUnits(units)
                 .misconceptions(concept.getMisconceptions().stream()
                         .map(ConceptMisconception::getMisconception)
                         .collect(Collectors.toList()))
@@ -282,6 +304,33 @@ public class CourseServiceImpl implements CourseService {
                         .map(Concept::getId)
                         .collect(Collectors.toList()))
                 .build();
+    }
+
+    // Lower value = shown first. Preferred content types for each style get priority 0–2; others get 99.
+    private int stylePriority(ContentType type, LearningStyle style) {
+        if (style == null) return type != null ? type.ordinal() : 99;
+        return switch (style) {
+            case VISUAL -> switch (type) {
+                case DIAGRAM -> 0;
+                case VIDEO -> 1;
+                case INTERACTIVE -> 2;
+                default -> 99;
+            };
+            case TEXT -> switch (type) {
+                case TEXT -> 0;
+                default -> 99;
+            };
+            case CODE -> switch (type) {
+                case CODE -> 0;
+                case EXERCISE -> 1;
+                default -> 99;
+            };
+            case AUDITORY -> switch (type) {
+                case VIDEO -> 0;
+                case INTERACTIVE -> 1;
+                default -> 99;
+            };
+        };
     }
 
     private LearningUnitResponse mapLearningUnitResponse(LearningUnit unit) {
